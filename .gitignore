@@ -7,3 +7,4 @@ build/
 *.html
 .DS_Store
 dataset/
+*.c
