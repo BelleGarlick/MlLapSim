@@ -2,22 +2,22 @@ import threading
 from pathlib import Path
 from typing import List, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Partition(BaseModel):
 
-    vehicles: List[dict]
+    vehicles: List[dict] = Field(default_factory=list)
 
-    widths: List[List[float]]
-    angles: List[List[float]]
-    offsets: List[List[float]]
+    widths: List[List[float]] = Field(default_factory=list)
+    angles: List[List[float]] = Field(default_factory=list)
+    offsets: List[List[float]] = Field(default_factory=list)
 
-    positions: List[List[float]]
-    velocities: List[List[float]]
+    positions: List[List[float]] = Field(default_factory=list)
+    velocities: List[List[float]] = Field(default_factory=list)
 
     @staticmethod
-    def load(path: str) -> 'Partition':
+    def load(path: Union[str, Path]) -> 'Partition':
         with open(path) as file:
             return Partition.model_validate_json(file.read())
 
@@ -29,9 +29,16 @@ class Partition(BaseModel):
         return partition
 
     def save(self, path: Union[Path, str]):
-        print(f"Saving to {path}")
         with open(path, "w+") as file:
             file.write(self.model_dump_json())
+
+    def append(self, partitions: Partition):
+        self.vehicles.extend(partitions.vehicles)
+        self.widths.extend(partitions.widths)
+        self.angles.extend(partitions.angles)
+        self.offsets.extend(partitions.offsets)
+        self.positions.extend(partitions.positions)
+        self.velocities.extend(partitions.velocities)
 
     @staticmethod
     def combine(partitions: List['Partition']):

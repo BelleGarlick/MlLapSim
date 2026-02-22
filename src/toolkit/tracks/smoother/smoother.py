@@ -16,7 +16,6 @@ from toolkit.utils.spacial_map import SpatialLineItem, SpatialMap
 CollisionPairs = List[Tuple[List[Tuple[float]], List[int]]]
 
 
-@log_time("Smoothed %LEN% normals", indent=2)
 def _smooth_normals(normals: List[List[float]], iterations: int, width: float) -> List[List[float]]:
     """This function smooths out a list of normals of the track. This prevents
     intersecting normals at tight corner edges.
@@ -90,7 +89,6 @@ def _split_normals(normals: List[List[float]]) -> Tuple[List[List[float]], List[
     return left_normals, right_normals
 
 
-@log_time("Found %LEN% normal collisions", indent=2)
 def _extend_normals_until_collision(
         half_normal: List[List[float]],
         boundary_points: List[List[float]],
@@ -118,7 +116,7 @@ def _extend_normals_until_collision(
     boundary_lines = maths.points_to_lines(boundary_points)
     boundary_lines = maths.roll(boundary_lines, 1)
     spatial_map_cell_size = max(maths.line_lengths(half_normal)) * max_extensions
-    boundary_spatial_map = SpatialMap(spatial_map_cell_size)
+    boundary_spatial_map = SpatialMap(spatial_map_cell_size * 2)
     for i in range(len(boundary_points)):
         boundary_spatial_map.add_item(SpatialLineItem(boundary_points[i - 1], boundary_points[i]))
 
@@ -149,13 +147,13 @@ def _extend_normals_until_collision(
                 break
 
         if len(normal_collisions[i][0]) == 0:
+            # normal_collisions[i] = [], []
             # TODO Change this to another exception for smoothing lines. Will need to check usages
             raise InvalidTrackGeneration("Unable to find boundary collision against smoothed lines")
 
     return normal_collisions
 
 
-@log_time("Collapsed collisions", indent=2)
 def _collapse_collisions_pairs(
         half_normals: List[List[float]],
         half_normal_collisions: CollisionPairs,
@@ -302,7 +300,12 @@ def _get_closest_collision_index(idx: int, possible_idxs: List[int], n: int):
 
     best_idx = None
     for i, pos_idx in enumerate(possible_idxs):
-        delta = min(abs(idx - pos_idx), abs(idx - (pos_idx + n)), abs(idx + n - pos_idx))
+        delta = min(
+            abs(idx - pos_idx),
+            abs(idx - (pos_idx + n)),
+            abs(idx + n - pos_idx),
+            abs(idx - n - pos_idx)
+        )
 
         if best_idx is None:
             best_idx = delta, pos_idx

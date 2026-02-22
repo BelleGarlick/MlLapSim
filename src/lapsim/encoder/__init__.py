@@ -1,14 +1,14 @@
 import json
-import os
 import math
+import os
 import random
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
-from .encoder import encode
-from .parallel_encoder import parallel_encode
-from lapsim.encoder.encoder_input import EncoderInput
+from lapsim.encoder.encoder import encode
 from toolkit.tracks.models import Track
+from lapsim.encoder.encoder_input import EncoderInput
+from lapsim.encoder.partition import Partition
 
 """This whole module handles encoding the data according to Garlick e Bradley 
 (2021). This file specifically has the functional interface from the CLI. This
@@ -19,12 +19,8 @@ is called from lapsim.__init__.py
 def from_cli(
         src: str,
         dest: str,
-        n_partitions: Optional[int],
-        flip: Optional[bool],
-        batch_size: int,
-        cores: int,
-        portion: float = 1,
-        seed: Optional[int] = None
+        n_partitions: Optional[int] = None,
+        flip: Optional[bool] = False
 ):
     """This function is to be called using params entered via the CLI
 
@@ -35,68 +31,95 @@ def from_cli(
             everything is exported individually).
         flip: If flip then items will be repeated but the repeated item is
             flipped.
-        batch_size: The size passed through to the batch_size param
-        cores: Number of cores to spread the load across
-        portion: Percentage of tracks to splice
-        seed: The value to seed the randomness
     """
+    if not os.path.exists(src):
+        raise FileNotFoundError(f"Source directory {src} does not exist")
+
+    if not os.path.exists(dest):
+        raise FileNotFoundError(f"Destination directory {dest} does not exist")
+
     # Populate empty args
     if n_partitions is None: n_partitions = 0
-    if not portion: portion = 1.0
-    portion = min(1.0, max(0.0, portion))
 
     # Get all values
     src, dest = Path(src), Path(dest)
+
+    if not src: raise FileNotFoundError("Source directory not found")
+    if not dest: raise FileNotFoundError("Destination directory not found")
+
+    # Check whether to compute individually
+    if n_partitions < 1:
+        encode_singular_tracks(src, dest, flip)
+
+    else:
+        encode_multiple_tracks(src, dest, flip, n_partitions)
+
+
+def get_track_paths(src, flip=False) -> List[Tuple[Path, bool]]:
     files: List[str] = [x for x in os.listdir(src) if x[0] != '.']
-    print(f"Found {len(files)} files folders to encode.")
+    files = [x for x in files if x[0] != "."]
 
-    # Reduce the number of items based on a random sample
-    random.seed(seed)
-    files = random.sample(files, k=math.ceil(len(files) * portion))
-    random.seed(None)
-    print(f"Reduced to {len(files)} items due to --portion {portion}")
+    file_flip_paths = []
+    for file in files:
+        input_path = src / file
+        file_name = input_path.stem
 
-    # Scan all files to build the splicer inputs
-    print("Started scanning")
-    inputs: List[EncoderInput] = []
-    file_names = []
-    for i, file in enumerate(files):
-        if file[0] == ".": continue
-        print(f"\r{i + 1}/{len(files)} {dir}", end="")
+        file_flip_paths.append((input_path, file_name, False))
 
-        with open(src / file) as file_data:
+        if flip:
+            file_name += ".flipped"
+            file_flip_paths.append((input_path, file_name, True))
+
+    random.shuffle(file_flip_paths)
+
+    return file_flip_paths
+
+
+def encode_singular_tracks(
+    src,
+    dest,
+    flip
+):
+    files = get_track_paths(src, flip)
+    for i, (path, file_name, flip) in enumerate(files):
+        print(f"\r{i + 1}/{len(files)} {file_name}" + " " * 20, end="")
+        with open(path) as file_data:
             data = json.load(file_data)
 
-            file_names.append(Path(file).stem)
-            inputs.append(EncoderInput(
-                track=Track.model_validate(data['track']),
-                vehicle=data['vehicle']
-            ))
+        encode(EncoderInput(
+            track=Track.model_validate(data['track']),
+            vehicle=data['vehicle'],
+            flip=flip,
+        )).save(str(dest / file_name) + ".json")
 
-            if flip:
-                file_names.append(f"{Path(file).stem}-flipped")
-                inputs.append(
-                    EncoderInput(
-                        track=Track.model_validate(data['track']),
-                        vehicle=data['vehicle'],
-                        flip=True
-                    )
-                )
 
-    print("\rScan complete.")
+def encode_multiple_tracks(
+    src,
+    dest,
+    flip,
+    n_partitions
+):
+        files = get_track_paths(src, flip)
+        partition_size = math.ceil(len(files) / n_partitions)
 
-    # Execute the parallel encoder
-    parallel_encode(
-        inputs,
-        n_partitions=n_partitions,
-        batch_size=batch_size,
-        cores=cores,
-        path=(
-            (lambda idx: dest / f"{file_names[idx]}.json")
-            if n_partitions < 1 else
-            (lambda idx: dest / f"partition-{idx}.json")
-        ),
-        return_partitions=False
-    )
+        current_partition, count = Partition(), 0
+        for i, (path, file_name, flip) in enumerate(files):
+            if len(current_partition.positions) >= partition_size:
+                current_partition.save(str(dest / f"p{count}.json"))
+                current_partition = Partition()
+                count += 1
 
-    # TODO Add complete here and in spliced
+            print(f"\r{i + 1}/{len(files)} {file_name}" + " " * 20, end="")
+            with open(path) as file_data:
+                data = json.load(file_data)
+
+            current_partition.append(
+                encode(EncoderInput(
+                    track=Track.model_validate(data['track']),
+                    vehicle=data['vehicle'],
+                    flip=flip,
+                ))
+            )
+
+        if len(current_partition.angles) > 0:
+            current_partition.save(str(dest / f"p{count}.json"))

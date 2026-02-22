@@ -99,9 +99,8 @@ class NormalisationBounds(BaseModel):
                     self.min_vehicle = vehicle
                     self.max_vehicle = vehicle
                 else:
-                    v_arr = np.array([self.min_vehicle, self.max_vehicle, vehicle])
+                    v_arr = np.array([self.min_vehicle, self.max_vehicle, vehicle], np.float32)
 
-                    # noinspection PyTypeChecker
                     self.min_vehicle, self.max_vehicle = (
                         np.min(v_arr, axis=0).tolist(), np.max(v_arr, axis=0).tolist())
 

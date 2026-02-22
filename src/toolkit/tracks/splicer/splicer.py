@@ -48,7 +48,6 @@ def splice(params: SplicerInput) -> Track:
         for i in range(len(path_x))
     ]
 
-    # TODO Add unit testing for this
     normals = [seg.arr() for seg in track.segmentations]
 
     encoded_normals: List[SegmentationLine] = []

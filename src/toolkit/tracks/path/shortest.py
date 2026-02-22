@@ -1,6 +1,8 @@
 import dataclasses
 from typing import List, Tuple
 
+import numpy as np
+
 from toolkit import maths
 from toolkit.tracks.models import Track
 from toolkit.utils.logger import log_time
@@ -127,8 +129,7 @@ def shortest_path_walk_track(lines: List[Tuple[float, float, float, float]], ste
     return closest_point.interpolations
 
 
-@log_time("Shortest Path Calculated", indent=0)
-def shortest_path(track: Track, padding=1, max_iterations=10_000, early_stop_threshold=0.001) -> ShortestPathResponse:
+def shortest_path(track: Track, padding=1, max_iterations=10_000, early_stop_threshold=10e-6) -> ShortestPathResponse:
     """Calculate the shortest path on a track
 
     Args:
@@ -158,7 +159,10 @@ def shortest_path(track: Track, padding=1, max_iterations=10_000, early_stop_thr
 
     points_to_check = {i for i in range(n)}
 
+    improvements = []
     for iterations in range(max_iterations):
+        improvements = improvements[-5:]
+
         changed_points = set()
         for i in range(n):
             if i not in points_to_check:
@@ -192,9 +196,9 @@ def shortest_path(track: Track, padding=1, max_iterations=10_000, early_stop_thr
 
         # Calculate length for early stopping
         new_length = sum(maths.line_lengths(maths.points_to_lines(points)))
-        improvement = total_length - new_length
-        if improvement < early_stop_threshold:
-            print(f"\rEarly stopping reached on iteration {iterations} ({new_length}).")
+        improvement = abs(total_length - new_length)
+        improvements.append(improvement)
+        if len(improvements) > 3 and np.mean(improvements) < early_stop_threshold:
             break
         total_length = new_length
 

@@ -70,8 +70,8 @@ class Logger:
                 + partition_items
                 + [f"Batch: {batch + 1}/{n_batches}"]
                 + ["{}: {:.6f}".format(label, np.mean(self.avg_loss[label])) for label in self.labels]
-                + [" " * 40]
-            ))
+                + [" " * 10]
+            ), end="")
 
     def write_val(self, epoch: int, batch: int, n_batches: int, losses: List[float]):
         """Write validation items"""
@@ -83,8 +83,8 @@ class Logger:
                 [f"\rValidating. Epoch: {epoch + 1}"]
                 + [f"Batch: {batch + 1}/{n_batches}"]
                 + ["{}: {:.6f}".format(label, np.mean(self.avg_val_loss[label])) for label in self.labels]
-                + [" " * 40]
-            ))
+                + [" " * 10]
+            ), end="")
 
     def flush(self, epoch: int):
         """Print the past epochs logs and add item to history"""

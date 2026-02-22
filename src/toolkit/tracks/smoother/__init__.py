@@ -36,6 +36,7 @@ def smooth_track(track: Track, spacing: Optional[int] = None) -> Track:
 
     # Extend normals and find all collisions they half normals make with the boundary
     left_normals, right_normals = _split_normals(smooth_normals)
+
     left_normal_collisions = _extend_normals_until_collision(left_normals, left_boundary)
     right_normal_collisions = _extend_normals_until_collision(right_normals, right_boundary)
 

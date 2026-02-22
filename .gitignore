@@ -3,3 +3,7 @@ build/
 *.pyc
 .coverage
 *.egg-info/
+*.so
+*.html
+.DS_Store
+dataset/

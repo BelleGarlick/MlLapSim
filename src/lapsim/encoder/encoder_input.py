@@ -7,6 +7,7 @@ from toolkit.tracks.models import Track
 class EncoderInput:
 
     track: Track
+
     vehicle: dict
 
     flip: bool = False

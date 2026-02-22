@@ -35,7 +35,7 @@ transform_map = {
 
 class Transform(BaseModel):
 
-    method: str = Field(default="window")
+    method: str = Field(default="flat-window")
     vehicle_encoding: Union[str, List[str]] = Field(default="V1")
 
     inputs: List[str] = Field(default=DEFAULT_INPUTS)

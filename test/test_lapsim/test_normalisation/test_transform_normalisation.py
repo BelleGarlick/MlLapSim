@@ -66,6 +66,7 @@ class TestTransformNormalisationFunctionality(TestBase):
         partition = Partition.load(path)
 
         transform_and_normalisation = TransformNormalisation()
+        transform_and_normalisation.transform.method = "window"
         transform_and_normalisation.transform.foresight = 9
         transform_and_normalisation.transform.sampling = 2
         transform_and_normalisation.extend(partition)

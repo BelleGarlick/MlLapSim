@@ -67,10 +67,10 @@ cpdef segment_intersections(Line line, Lines segments, return_indexes: bool = Fa
         if delta == 0:
             continue
 
-        min_x = cmax(cmin(seg_0, seg_2), min_x_seg) - 1e-10
-        min_y = cmax(cmin(seg_1, seg_3), min_y_seg) - 1e-10
-        max_x = cmin(cmax(seg_0, seg_2), max_x_seg) + 1e-10
-        max_y = cmin(cmax(seg_1, seg_3), max_y_seg) + 1e-10
+        min_x = cmax(cmin(seg_0, seg_2), min_x_seg) - 1e-9
+        min_y = cmax(cmin(seg_1, seg_3), min_y_seg) - 1e-9
+        max_x = cmin(cmax(seg_0, seg_2), max_x_seg) + 1e-9
+        max_y = cmin(cmax(seg_1, seg_3), max_y_seg) + 1e-9
 
         x = (b2 * c1 - b1 * c2) / delta
         y = (a1 * c2 - a2 * c1) / delta

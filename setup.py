@@ -20,7 +20,6 @@ setup(
         ],
         language_level="3",
         annotate=True,
-
     )
 )
 

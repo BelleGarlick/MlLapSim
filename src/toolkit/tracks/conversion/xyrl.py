@@ -5,7 +5,8 @@ import numpy as np
 from toolkit import maths
 from toolkit.tracks.models import Track, SegmentationLine
 from ..path import shortest_path
-from ..smoother import _smooth_normals, _split_normals, _extend_normals_until_collision, _collapse_collisions_pairs
+from ..smoother import _split_normals, _extend_normals_until_collision, _collapse_collisions_pairs
+from ...maths import create_line_normals_from_points
 
 """XYRL Track Conversion
 
@@ -87,50 +88,85 @@ def from_xyrl(
     )
 
 
-def to_xyrl(track: Track, normal_spacing=2) -> List[Tuple[float, float, float, float]]:
+def _cut_normals(normals, left_xy, right_xy):
+    # Extend normals and find all collisions they half normals make with the boundary
+    left_normals, right_normals = _split_normals(normals)
+    left_normal_collisions = _extend_normals_until_collision(left_normals, left_xy)
+    right_normal_collisions = _extend_normals_until_collision(right_normals, right_xy)
+
+    # Collapse all collisions into one collision per normal
+    left_collisions = _collapse_collisions_pairs(left_normals, left_normal_collisions, len(left_xy))
+    right_collisions = _collapse_collisions_pairs(right_normals, right_normal_collisions, len(right_xy))
+
+    return [
+        left_collisions[i] + right_collisions[i]
+        for i in range(len(left_collisions))
+    ]
+
+
+def to_xyrl(normals, spacing=2) -> List[Tuple[float, float, float, float]]:
     """Convert a track to the XYRL format.
 
     Note, this function utilises the track normal generation functions
     which deal with overlapping track geometry.
 
     Args:
-        track: The track object
+        normals: The normals which define the track
         normal_spacing: Distance between normals
 
     Returns: List of the four items (X, Y, R, L)
     """
-    shortest = shortest_path(track)
+    track = Track(
+        segmentations=[
+            SegmentationLine(x1=x1, y1=y1, x2=x2, y2=y2)
+            for (x1, y1, x2, y2) in normals
+        ]
+    )
+    left_xy, right_xy = track.left_line(), track.right_line()
 
-    # TODO Investigate why a lot of these unctions are already in the smoother. Can this all be reused
+    shortest = shortest_path(track, padding=1)
+    normals = maths.create_normals_on_path(shortest.positions, 80, spacing)
+    #
+    # import matplotlib as mpl
+    # import matplotlib.pyplot as plt
+    #
+    # mpl.use('macosx')
+    #
+    # plt.plot([x[0] for x in shortest.positions], [x[1] for x in shortest.positions])
+    # for normal in normals:
+    #     plt.plot([normal[0], normal[2]], [normal[1], normal[3]])
+    # # plt.plot([x[0] for x in ref_line], [x[1] for x in ref_line])
+    # # plt.plot([x[0] for x in left_boundary], [x[1] for x in left_boundary])
+    # # plt.plot([x[0] for x in right_boundary], [x[1] for x in right_boundary])
+    # for n in normals:
+    #     plt.plot(n[0::2], n[1::2])
+    # plt.axis("equal")
+    # plt.show()
 
-    normals = maths.create_normals_on_path(shortest.positions, 80, normal_spacing)
-    normals = _smooth_normals(normals, 1000, 80)
-    centers = maths.line_centers(normals)
+    normals = _cut_normals(normals, left_xy, right_xy)
 
-    # This uses the same method for track boundary intersection as it deals with overlapping collisions
-    left_line, right_line = track.left_line(), track.right_line()
+    track = Track(
+        segmentations=[
+            SegmentationLine(x1=x1, y1=y1, x2=x2, y2=y2)
+            for (x1, y1, x2, y2) in normals
+        ]
+    )
+    shortest = shortest_path(track, padding=1)
+    normals = create_line_normals_from_points(shortest.positions, 80)
+    normals = _cut_normals(normals, left_xy, right_xy)
 
-    # Extend normals and find all collisions they half normals make with the boundary
-    left_normals, right_normals = _split_normals(normals)
-    left_normal_collisions = _extend_normals_until_collision(left_normals, left_line)
-    right_normal_collisions = _extend_normals_until_collision(right_normals, right_line)
-
-    # Collapse all collisions into one collision per normal
-    left_collisions = _collapse_collisions_pairs(left_normals, left_normal_collisions, len(left_normals))
-    right_collisions = _collapse_collisions_pairs(right_normals, right_normal_collisions, len(right_line))
-
-    # Calculate left and right distace
+    # Calculate left and right distance
     lefts = [
-        maths.distance(center, n_start)
+        maths.distance(center, n_start[:2])
         for center, n_start in
-        zip(centers, left_collisions)]
+        zip(shortest.positions, normals)]
     rights = [
-        maths.distance(center, n_start)
+        maths.distance(center, n_start[2:])
         for center, n_start in
-        zip(centers, right_collisions)]
+        zip(shortest.positions, normals)]
 
     return [
         (x, y, right, left)
         for i, ((x, y), left, right) in
-        enumerate(zip(centers, lefts, rights))
+        enumerate(zip(shortest.positions, lefts, rights))
     ]
