@@ -24,9 +24,6 @@ class LapSimModelDense(nn.Module):
         self.p1 = nn.Linear(200, 200)
         self.p2 = nn.Linear(200, 9)
 
-        self.loss = HuberLoss()
-        self.optimiser = NAdam(self.parameters(), weight_decay=0.001)
-
     def forward(self, windows, vehicles):
         x = torch.concatenate((vehicles, windows), axis=1)
 

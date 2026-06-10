@@ -30,6 +30,10 @@ class LapSimModel(nn.Module):
 
         self.bounds = bounds
 
+    @property
+    def total_params(self):
+        return sum(p.numel() for p in self.model.parameters())
+
     def predict(self, partition: Partition):
         with torch.no_grad():
             self.model.eval()
