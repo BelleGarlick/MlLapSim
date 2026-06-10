@@ -32,7 +32,7 @@ class Partition(BaseModel):
         with open(path, "w+") as file:
             file.write(self.model_dump_json())
 
-    def append(self, partitions: Partition):
+    def append(self, partitions: 'Partition'):
         self.vehicles.extend(partitions.vehicles)
         self.widths.extend(partitions.widths)
         self.angles.extend(partitions.angles)

@@ -1,9 +1,7 @@
-from typing import List, Optional, Tuple
-
 import numpy as np
 from toolkit import maths
 from lapsim.encoder.encoder import extract_features
-from lapsim.eval.evaluation import Evaluation
+from lapsim.evals.evaluation import Evaluation
 from toolkit.tracks.models import SegmentationLine, Track
 
 """Evaluation toolkit module.
@@ -121,7 +119,7 @@ def estimate_lap_time(track: Track) -> float:
     return total_time
 
 
-def find_apexes(segmentations: List[SegmentationLine]) -> List[int]:
+def find_apexes(segmentations: list[SegmentationLine]) -> list[int]:
     """This function is designed to find the apexes of a track. Returning a
     list of indexes where each index maps to a seg line where the line kisses
     the apex.
@@ -180,7 +178,7 @@ def calculate_optimal_positions(track: Track) -> np.ndarray:
     ])
 
 
-def evaluate_position_errors_irrespective_of_smoothing(truth: Track, predicted: Track) -> Optional[Tuple[List[float], List[float]]]:
+def evaluate_position_errors_irrespective_of_smoothing(truth: Track, predicted: Track) -> (tuple[list[float], list[float]] | None):
     """Calculates the positional errors between the truth line and racing line irrespective of the sloping
 
     :param truth:

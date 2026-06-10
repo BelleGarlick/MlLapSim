@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 from toolkit import maths
-from lapsim import eval
+from lapsim.evals import evaluate
 from lapsim.render.render_item import RenderItem
 from toolkit.tracks.models import SegmentationLine
 
@@ -136,7 +136,7 @@ def plot_track(
     ax.plot([x.x2 for x in seg_lines], [x.y2 for x in seg_lines], label="Track Boundary", color="black")
 
     for data in tracks:
-        path = eval.calculate_optimal_positions(data.track)
+        path = evaluate.calculate_optimal_positions(data.track)
 
         ax.plot(path[:, 0], path[:, 1], label=data.label, color=data.color)
 

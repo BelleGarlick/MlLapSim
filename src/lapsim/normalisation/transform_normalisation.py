@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 from pathlib import Path
 from typing import Union, List, Tuple
@@ -45,12 +46,28 @@ class TransformNormalisation(BaseModel):
 
         return self
 
-    def normalise_and_transform(self, partition: Partition, cores: int = 1):
+    def normalise_and_transform(self, partition: Partition, cache_tensor_prefix = None, cores: int = 1):
         """Normalise and transform the data"""
-        vehicles = self.transform.vectorise_vehicles(partition.vehicles)
-        normalisation = self.bounds.normalise(partition, vehicles)
 
-        return self.transform.transform(normalisation, cores=cores)
+        if cache_tensor_prefix is not None and os.path.exists(cache_tensor_prefix + "-x.npy"):
+            x = np.load(cache_tensor_prefix + f"-x.npy")
+            y_pos = np.load(cache_tensor_prefix + f"-ypos.npy")
+            y_vel = np.load(cache_tensor_prefix + f"-yvel.npy")
+            vehicles = np.load(cache_tensor_prefix + f"-v.npy")
+        else:
+            vehicles = self.transform.vectorise_vehicles(partition.vehicles)
+            normalisation = self.bounds.normalise(partition, vehicles)
+
+            x, (y_pos, y_vel), vehicles = self.transform.transform(normalisation, cores=cores)
+
+            if cache_tensor_prefix:
+                np.save(cache_tensor_prefix + f"-x.npy", x)
+                np.save(cache_tensor_prefix + f"-ypos.npy", y_pos)
+                np.save(cache_tensor_prefix + f"-yvel.npy", y_vel)
+                np.save(cache_tensor_prefix + f"-v.npy", vehicles)
+
+        return x, (y_pos, y_vel), vehicles
+
 
     def detransform_and_denormalise(
             self,
@@ -64,7 +81,7 @@ class TransformNormalisation(BaseModel):
             velocity * (self.bounds.max_velocity - self.bounds.min_velocity) + self.bounds.min_velocity
         )
 
-    def async_load_and_normalise_partition(self, partition_path: Union[str, Path], cores: int = 1):
+    def async_load_and_normalise_partition(self, partition_path: Union[str, Path], cache_tensor_prefix=None, cores: int = 1):
         """Load and normalise a partition asyncronously
 
         Args:
@@ -73,7 +90,7 @@ class TransformNormalisation(BaseModel):
         Returns:
             The async partition loader object
         """
-        loader = AsyncPartitionNormalisationLoader(partition_path, self, cores)
+        loader = AsyncPartitionNormalisationLoader(partition_path, self, cache_tensor_prefix, cores)
         loader.start()
 
         return loader
@@ -82,16 +99,30 @@ class TransformNormalisation(BaseModel):
 class AsyncPartitionNormalisationLoader(threading.Thread):
     """Helper object for loading and normalising the partition asyncronously"""
 
-    def __init__(self, path: str, normaliser: TransformNormalisation, cores: int = 1):
+    def __init__(self, path: str, normaliser: TransformNormalisation, cache_tensor_prefix=None, cores: int = 1):
         super().__init__()
 
         self._path = path
         self._normaliser = normaliser
+        self.cache_tensor_prefix = cache_tensor_prefix
 
-        self.partition = None
         self.normalisation = None
         self.cores = cores
 
     def run(self):
-        self.partition = Partition.load(self._path)
-        self.normalisation = self._normaliser.normalise_and_transform(self.partition, cores=self.cores)
+        if self.cache_tensor_prefix is not None and os.path.exists(self.cache_tensor_prefix + "-x.npy"):
+            x = np.load(self.cache_tensor_prefix + f"-x.npy")
+            y_pos = np.load(self.cache_tensor_prefix + f"-ypos.npy")
+            y_vel = np.load(self.cache_tensor_prefix + f"-yvel.npy")
+            vehicles = np.load(self.cache_tensor_prefix + f"-v.npy")
+        else:
+            partition = Partition.load(self._path)
+            x, (y_pos, y_vel), vehicles = self._normaliser.normalise_and_transform(partition, cores=self.cores)
+
+            if self.cache_tensor_prefix:
+                np.save(self.cache_tensor_prefix + f"-x.npy", x)
+                np.save(self.cache_tensor_prefix + f"-ypos.npy", y_pos)
+                np.save(self.cache_tensor_prefix + f"-yvel.npy", y_vel)
+                np.save(self.cache_tensor_prefix + f"-v.npy", vehicles)
+
+        self.normalisation = x, (y_pos, y_vel), vehicles

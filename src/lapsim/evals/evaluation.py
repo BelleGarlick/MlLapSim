@@ -148,3 +148,37 @@ class Evaluation:
             velocity=EvaluationError.combine([x.velocity for x in comparisons]),
             apexes=[]
         )
+
+    def print(self):
+        print("\n".join([
+            "Laptime",
+            f" - Abs Error: {self.laptime.abs_error}",
+            f" - Percentage: {self.laptime.percentage}",
+            f" - Error per minute: {self.laptime.error_per_minute}",
+            "Position",
+            f" - Max: {self.position.max}",
+            f" - Mean: {self.position.mean}",
+            f" - Mean Abs: {self.position.mean_absolute}",
+            f" - RMSE: {self.position.rmse}",
+            f" - Ci95: {self.position.ci95}",
+            f" - Percentage Mean: {self.position.percentage_mean}",
+            f" - Percentage Max: {self.position.percentage_max}",
+            f" - Percentage Ci95: {self.position.percentage_ci95}",
+            f" - Apex Mean: {self.position.apex_mean}",
+            f" - Apex Mean Abs: {self.position.apex_mean_absolute}",
+            f" - Apex Max: {self.position.apex_max}",
+            "Velocity",
+            f" - Max: {self.velocity.max}",
+            f" - Mean: {self.velocity.mean}",
+            f" - Mean Abs: {self.velocity.mean_absolute}",
+            f" - RMSE: {self.velocity.rmse}",
+            f" - Ci95: {self.velocity.ci95}",
+            f" - Percentage Mean: {self.velocity.percentage_mean}",
+            f" - Percentage Max: {self.velocity.percentage_max}",
+            f" - Percentage Ci95: {self.velocity.percentage_ci95}",
+            f" - Apex Mean: {self.velocity.apex_mean}",
+            f" - Apex Mean Abs: {self.velocity.apex_mean_absolute}",
+            f" - Apex Max: {self.velocity.apex_max}",
+        ]))
+
+        return self

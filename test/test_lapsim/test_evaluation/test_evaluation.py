@@ -2,11 +2,11 @@ import json
 
 import numpy as np
 from toolkit import maths
-from lapsim.eval.evaluation import Evaluation, EvaluationLapTime, EvaluationError
+from lapsim.evals.evaluation import Evaluation, EvaluationLapTime, EvaluationError
 from toolkit.tracks.models import SegmentationLine, Track
 
 from utils.test_base import TestBase
-from lapsim import eval
+from lapsim.evals import evaluate
 
 
 """Test encoder functionality by testing how inputs affect the output"""
@@ -22,7 +22,7 @@ class TestEvaluation(TestBase):
 
     def test_calculate_optimal_positions(self):
         spliced_track = self.get_spliced_data()
-        optimal_path = eval.calculate_optimal_positions(spliced_track)
+        optimal_path = evaluate.calculate_optimal_positions(spliced_track)
         self.assertTupleEqual((1174, 2), optimal_path.shape)
 
         # Test that distances on average are near 5m
@@ -31,7 +31,7 @@ class TestEvaluation(TestBase):
 
     def test_find_apexes(self):
         spliced_track = self.get_spliced_data()
-        apexes = eval.find_apexes(spliced_track.segmentations)
+        apexes = evaluate.find_apexes(spliced_track.segmentations)
 
         self.assertListEqual(
             apexes,
@@ -41,7 +41,7 @@ class TestEvaluation(TestBase):
     def test_laptime(self):
         # Create track of two segmentations seperated by 10m (20m round trip)
         # at speeds of 5mps
-        laptime = eval.estimate_lap_time(Track(
+        laptime = evaluate.estimate_lap_time(Track(
             segmentations=[
                 SegmentationLine(x1=0, y1=0, x2=1, y2=0, pos=0, vel=5),
                 SegmentationLine(x1=0, y1=10, x2=1, y2=10, pos=0, vel=5),
@@ -53,7 +53,7 @@ class TestEvaluation(TestBase):
 
         # Test on real data
         spliced_track = self.get_spliced_data()
-        laptime = eval.estimate_lap_time(spliced_track)
+        laptime = evaluate.estimate_lap_time(spliced_track)
 
         self.assertAlmostEqual(laptime, 165.8, delta=0.1)
 
@@ -61,7 +61,7 @@ class TestEvaluation(TestBase):
         """Test on a ground truth and predicted from a poorly trained network"""
         truth_data = Track.parse_file(self.get_lapsim_data_path() / 'predicted' / 'ground-0.json')
         pred_data = Track.parse_file(self.get_lapsim_data_path() / 'predicted' / 'predicted-0.json')
-        evaluation = eval.evaluate(truth_data, pred_data)
+        evaluation = evaluate.evaluate(truth_data, pred_data)
 
         self.assertAlmostEqual(evaluation.laptime.truth, 89.35, places=1)
         self.assertAlmostEqual(evaluation.laptime.predicted, 101.36, places=1)
@@ -83,7 +83,7 @@ class TestEvaluation(TestBase):
         def load_eval(index: int):
             truth_data = Track.parse_file(self.get_lapsim_data_path() / 'predicted' / f'ground-{index}.json')
             pred_data = Track.parse_file(self.get_lapsim_data_path() / 'predicted' / f'predicted-{index}.json')
-            return eval.evaluate(truth_data, pred_data)
+            return evaluate.evaluate(truth_data, pred_data)
 
         evaluation = Evaluation.combine([load_eval(i) for i in range(10)])
 
