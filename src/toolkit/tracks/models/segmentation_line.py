@@ -14,16 +14,6 @@ class SegmentationLine(BaseModel):
     x2: float = Field(description="Right X ordinate of the normal line")
     y2: float = Field(description="Right Y ordinate of the normal line")
 
-    pos: Optional[float] = Field(
-        default=None,
-        description="The relative position of the vehicle upon this line.")
-    vel: Optional[float] = Field(
-        default=None,
-        description="The velocity of the vehicle as it passes this line.")
-    acc: Optional[float] = Field(
-        default=None,
-        description="The acceleration of the vehicle as it passes this line.")
-
     def arr(self) -> List[float]:
         return [self.x1, self.y1, self.x2, self.y2]
 

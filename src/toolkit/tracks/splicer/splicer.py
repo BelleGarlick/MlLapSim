@@ -51,6 +51,7 @@ def splice(params: SplicerInput) -> Track:
     normals = [seg.arr() for seg in track.segmentations]
 
     encoded_normals: List[SegmentationLine] = []
+    out_positions, out_vels, out_accs = [], [], []
     for i, normal in enumerate(normals):
         # Find intersection point
         intersection_point, index = None, None
@@ -106,27 +107,11 @@ def splice(params: SplicerInput) -> Track:
         acc = (accs[index - 1] * (1 - l)) + (accs[index] * l)
 
         # Add new normal with all data.
-        data = {
-            "x1": normal[0],
-            "y1": normal[1],
-            "x2": normal[2],
-            "y2": normal[3],
-            "pos": p,
-            "vel": vel,
-            "acc": acc
-        }
-        if params.precision is not None:
-            data = {key: round(data[key], params.precision) for key in data}
+        out_positions.append(p)
+        out_vels.append(vel)
+        out_accs.append(acc)
 
-        encoded_normals.append(SegmentationLine.model_validate(data))
-
-    # Create new object
-    result = Track(segmentations=encoded_normals)
-
-    if params.on_complete:
-        params.on_complete(result, *(params.on_complete_args or []))
-
-    return result
+    return out_positions, out_vels, out_accs
 
 
 def get_path_data(track, optimal_path: List[PathInput]):

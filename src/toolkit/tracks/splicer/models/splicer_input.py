@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Callable, List, Any
+from typing import Optional, List, Any
 
 from toolkit.tracks.models.track import Track
 
@@ -26,4 +26,3 @@ class SplicerInput:
     precision: Optional[int] = None
 
     on_complete_args: List[Any] = None
-    on_complete: Callable[[Any], None] = None

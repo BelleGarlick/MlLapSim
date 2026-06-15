@@ -1,10 +1,9 @@
 import math
 from typing import List, Tuple
 
+import numpy as np
+
 from toolkit import maths
-from lapsim.encoder.partition import Partition
-from lapsim.encoder.encoder_input import EncoderInput
-from toolkit.tracks.models import SegmentationLine
 
 """This module encodes a given spliced track into the encoding outlined in 
 Garlick & Bradley 2021.
@@ -15,49 +14,7 @@ Garlick & Bradley 2021.
 # TODO Check that the lines dont cross
 
 
-def encode(encode_input: EncoderInput) -> Partition:
-    """This function encodes the track based on the given input track. This
-    works by taking the track, extracting the relevant data points as described
-    in Garlick & Bradley 2021.
-
-    Args:
-        encode_input: The input data to encode the data such as the vehicle,
-            track and params for encoding the track.
-
-    Returns:
-        The encoded partition.
-    """
-    seg_lines = encode_input.track.segmentations
-    vehicle = encode_input.vehicle
-
-    # flip the x-axis, flips the left&right boundaries and flip the optimal position
-    # NOTE: The vehicle is not driving the track in reversed, just switching lefts to rights
-    if encode_input.flip:
-        for line in seg_lines:
-            line.y1, line.y2 = -line.y1, -line.y2
-
-            line.y1, line.y2 = line.y2, line.y1
-            line.x1, line.x2 = line.x2, line.x1
-
-            line.pos = 1 - line.pos
-
-    # Extract the features
-    widths, angles, offsets = extract_features(seg_lines)
-
-    positions = [normal.pos or -1 for normal in seg_lines]
-    velocities = [normal.vel or -1 for normal in seg_lines]
-
-    return Partition(
-        vehicles=[vehicle],
-        widths=[widths],
-        angles=[angles],
-        offsets=[offsets],
-        positions=[positions],
-        velocities=[velocities]
-    )
-
-
-def extract_features(seg_lines: List[SegmentationLine]) -> Tuple[List[float], List[float], List[float]]:
+def extract_features(seg_lines: np.ndarray) -> Tuple[List[float], List[float], List[float]]:
     """This function will extract the relevant features from the normal lines.
     This method extracts the relevant features from the given normals array. As
     defined in the paper, we extract the widths, the alpha angles and offset
@@ -69,10 +26,8 @@ def extract_features(seg_lines: List[SegmentationLine]) -> Tuple[List[float], Li
     Returns:
         The tuple of arrays: widths, angles and offsets stored as vectors.
     """
-    seg_lines = [
-        [x.x1, x.y1, x.x2, x.y2]
-        for x in seg_lines
-    ]
+    seg_lines = [[*x] for x in seg_lines]
+
     count = len(seg_lines)
     normal_centers = maths.line_centers(seg_lines)
 
