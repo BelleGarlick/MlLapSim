@@ -6,8 +6,9 @@ import numpy as np
 def decode(record):
     return {
         **record,
+        "id": record["id"].decode("utf-8"),
         "vehicle": json.loads(record["vehicle"]),
-        "track": np.frombuffer(record["track"], dtype=np.float32),
+        "track": np.frombuffer(record["track"], dtype=np.float32).reshape((-1, 4)),
         "widths": np.frombuffer(record["widths"], dtype=np.float32),
         "angles": np.frombuffer(record["angles"], dtype=np.float32),
         "offsets": np.frombuffer(record["offsets"], dtype=np.float32),

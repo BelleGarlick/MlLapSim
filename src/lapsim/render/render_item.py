@@ -6,6 +6,6 @@ from toolkit.tracks.models import Track
 
 @dataclass
 class RenderItem:
-    track: Track
+    track: dict
     label: str
     color: Optional[str]

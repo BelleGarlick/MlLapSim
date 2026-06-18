@@ -4,7 +4,6 @@ import numpy as np
 from toolkit import maths
 from lapsim.evals import evaluate
 from lapsim.render.render_item import RenderItem
-from toolkit.tracks.models import SegmentationLine
 
 """Render plots of the generated track/velocity/laterial deviation to compare
 the ground truth against the prediction.
@@ -44,10 +43,11 @@ def plot_velocities(
 
     if ax is None: fig, ax = plt.subplots(1, 1)
 
-    x_indicies = [i * distance for i in range(len(tracks[0].track.segmentations))]
+    seg_lines = tracks[0].track["track"]
+    x_indicies = [i * distance for i in range(len(seg_lines))]
 
     for data in tracks:
-        ax.plot(x_indicies, [x.vel for x in data.track.segmentations], label=data.label, color=data.color)
+        ax.plot(x_indicies, [x for x in data.track["vel"]], label=data.label, color=data.color)
 
     ax.set_xlabel("Distance (m)")
     ax.set_ylabel("Speed (mp2)")
@@ -84,14 +84,15 @@ def plot_lateral_deviation(
 
     if ax is None: fig, ax = plt.subplots(1, 1)
 
-    x_indicies = [i * distance for i in range(len(tracks[0].track.segmentations))]
-    widths = maths.line_lengths([[line.x1, line.y1, line.x2, line.y2] for line in tracks[0].track.segmentations])
+    seg_lines = tracks[0].track["track"]
+    x_indicies = [i * distance for i in range(len(seg_lines))]
+    widths = maths.line_lengths(seg_lines.tolist())
 
     ax.plot(x_indicies, np.array(widths) / 2, label="Track Boundary", color="black")
     ax.plot(x_indicies, -np.array(widths) / 2, color="black")
 
     for data in tracks:
-        path = [data.track.segmentations[i].pos * widths[i] - widths[i] / 2 for i in range(len(data.track.segmentations))]
+        path = [data.track["pos"][i] * widths[i] - widths[i] / 2 for i in range(len(data.track["track"]))]
 
         ax.plot(x_indicies, path, label=data.label, color=data.color)
 
@@ -128,12 +129,12 @@ def plot_track(
 
     if ax is None: fig, ax = plt.subplots(1, 1)
 
-    for i, line in enumerate(tracks[0].track.segmentations):
-        ax.plot([line.x1, line.x2], [line.y1, line.y2], color="red" if i == 0 else "grey")
+    seg_lines = tracks[0].track["track"]
+    for i, (x1, y1, x2, y2) in enumerate(seg_lines):
+        ax.plot([x1, x2], [y1, y2], color="red" if i == 0 else "grey")
 
-    seg_lines: List[SegmentationLine] = tracks[0].track.segmentations
-    ax.plot([x.x1 for x in seg_lines], [x.y1 for x in seg_lines], label="Track Boundary", color="black")
-    ax.plot([x.x2 for x in seg_lines], [x.y2 for x in seg_lines], label="Track Boundary", color="black")
+    ax.plot([x[0] for x in seg_lines], [x[1] for x in seg_lines], label="Track Boundary", color="black")
+    ax.plot([x[2] for x in seg_lines], [x[3] for x in seg_lines], label="Track Boundary", color="black")
 
     for data in tracks:
         path = evaluate.calculate_optimal_positions(data.track)

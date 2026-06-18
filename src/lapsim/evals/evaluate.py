@@ -10,7 +10,7 @@ This module provides the functions to evaluating two sets of spliced data.
 """
 
 
-def evaluate(truth: Track, predicted: Track) -> Evaluation:
+def evaluate(truth: dict, predicted: dict) -> Evaluation:
     """Compare spliced data
 
     Args:
@@ -20,7 +20,7 @@ def evaluate(truth: Track, predicted: Track) -> Evaluation:
     Returns:
         Evaluation model
     """
-    _all_vels = [x.vel for x in truth.segmentations] + [x.vel for x in predicted.segmentations]
+    _all_vels = truth["vel"].tolist() + predicted["vel"].tolist()
     min_vel, max_vel = min(_all_vels), max(_all_vels)
 
     true_optimal_line = calculate_optimal_positions(truth)
@@ -29,21 +29,21 @@ def evaluate(truth: Track, predicted: Track) -> Evaluation:
     position_deltas, position_percentage_errors = [], []
     velocity_deltas, velocity_percentage_errors = [], []
 
-    for n in range(len(truth.segmentations)):
+    for n in range(len(truth["track"])):
         # Velocity errors
-        vel_delta = truth.segmentations[n].vel - predicted.segmentations[n].vel
+        vel_delta = truth["vel"][n] - predicted["vel"][n]
         velocity_deltas.append(vel_delta)
         velocity_percentage_errors.append(abs(vel_delta) / (max_vel - min_vel) * 100)
 
         # Position errors
         distance = maths.distance(true_optimal_line[n], estimated_optimal_line[n])
-        if predicted.segmentations[n].pos < truth.segmentations[n].pos:
+        if predicted["pos"][n] < truth["pos"][n]:
             distance *= -1
         position_deltas.append(distance)
 
-        position_percentage_errors.append(abs(predicted.segmentations[n].pos - truth.segmentations[n].pos) * 100)
+        position_percentage_errors.append(abs(predicted["pos"][n] - truth["pos"][n]) * 100)
 
-    apexes = find_apexes(truth.segmentations)
+    apexes = find_apexes(truth)
 
     return Evaluation.from_errors(
         laptime=estimate_lap_time(truth),
@@ -71,9 +71,9 @@ def evaluate2(truth: Track, predicted: Track) -> Evaluation:
 
     velocity_deltas, velocity_percentage_errors = [], []
 
-    for n in range(len(truth.segmentations)):
+    for n in range(len(truth["track"])):
         # Velocity errors
-        vel_delta = truth.segmentations[n].vel - predicted.segmentations[n].vel
+        vel_delta = truth["vel"][n] - predicted["vel"][n]
         velocity_deltas.append(vel_delta)
         velocity_percentage_errors.append(abs(vel_delta) / (max_vel - min_vel) * 100)
 
@@ -107,10 +107,10 @@ def estimate_lap_time(track: Track) -> float:
     path = calculate_optimal_positions(track)
 
     total_time = 0
-    for i in range(len(track.segmentations)):
+    for i in range(len(track["track"])):
         p_pos, c_pos = path[i - 1], path[i]
-        u = track.segmentations[i].vel
-        v = track.segmentations[i - 1].vel
+        u = track["vel"][i]
+        v = track["vel"][i - 1]
         s = maths.distance(p_pos, c_pos)
         t = 2 * s / (u + v)
 
@@ -119,7 +119,7 @@ def estimate_lap_time(track: Track) -> float:
     return total_time
 
 
-def find_apexes(segmentations: list[SegmentationLine]) -> list[int]:
+def find_apexes(track: dict) -> list[int]:
     """This function is designed to find the apexes of a track. Returning a
     list of indexes where each index maps to a seg line where the line kisses
     the apex.
@@ -130,16 +130,16 @@ def find_apexes(segmentations: list[SegmentationLine]) -> list[int]:
     Returns:
         List of indexes representing the apexes of the track.
     """
-    _, angles, _ = extract_features(segmentations)
+    _, angles, _ = extract_features(track["track"])
     apexes = []
-    for i, normal in enumerate(segmentations):
+    for i in range(len(angles)):
         threshold = 0.02
 
-        within_threshold = normal.pos < threshold or normal.pos > 1 - threshold
+        within_threshold = track["pos"][i] < threshold or track["pos"][i] > 1 - threshold
         within_ratio = abs(angles[i]) > 0.01
 
         if within_threshold and within_ratio:
-            apexes += [[i, normal.pos]]
+            apexes += [[i, track['pos'][i]]]
 
     apex_groups = []
     current_group = []
@@ -157,7 +157,7 @@ def find_apexes(segmentations: list[SegmentationLine]) -> list[int]:
     return apexes
 
 
-def calculate_optimal_positions(track: Track) -> np.ndarray:
+def calculate_optimal_positions(track: dict) -> np.ndarray:
     """ Calculate optimal positions from the track.
 
     This function will interpolate the position from the p value on the line
@@ -171,10 +171,10 @@ def calculate_optimal_positions(track: Track) -> np.ndarray:
     """
     return np.array([
         [
-            line.x1 + (line.x2 - line.x1) * line.pos,
-            line.y1 + (line.y2 - line.y1) * line.pos,
+            line[0] + (line[2] - line[0]) * pos,
+            line[1] + (line[3] - line[1]) * pos,
         ]
-        for line in track.segmentations
+        for (line, pos) in zip(track["track"], track["pos"])
     ])
 
 
