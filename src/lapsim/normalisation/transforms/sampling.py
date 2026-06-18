@@ -3,15 +3,13 @@ from typing import List
 
 import numpy as np
 
-from lapsim.normalisation.normalised_data import NormalisedData
-
 
 """This module handles sampling and desampling the outputs of the transformer &
 networks."""
 
 
 def get_target_output(
-        normalised: NormalisedData,
+        normalised: list[dict],
         outputs: List[str],
         sampling: int = 0,
         lag: int = 0,
@@ -30,7 +28,7 @@ def get_target_output(
     Returns:
         A tuple of the output vectors
     """
-    items_count = normalised.normals_count()
+    items_count = sum([len(x["widths"]) for x in normalised])
 
     outputs_vectors = [np.zeros((items_count, (sampling * 2 + 1) * patch_size)) for _ in outputs]
 

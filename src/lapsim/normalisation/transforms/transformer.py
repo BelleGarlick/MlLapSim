@@ -52,7 +52,7 @@ class Transform(BaseModel):
     random_repeats: int = 1  # Choose a random number up to this point
     decimation: float = 0  # 0.5 means half the randomly track disapears, this is to help overfitting
 
-    def transform_vehicle(self, vehicle: dict) -> List[float]:
+    def transform_vehicle(self, vehicle: dict) -> np.ndarray:
         """Transform a vehicle based on a specific order.
 
         This function is used to create a modular way of encoding vehicle
@@ -90,7 +90,7 @@ class Transform(BaseModel):
             else:
                 raise ValueError(f"Vehicle is missing attribute: '{snake_case_key}' or '{camel_case_key}'")
 
-        return vehicle_data
+        return np.array(vehicle_data)
 
     def vectorise_vehicles(self, vehicles: List[dict]) -> List[List[float]]:
         """Vectorise a list of vehicles"""
@@ -116,6 +116,9 @@ class Transform(BaseModel):
 
     def transform(self, normalised_data: NormalisedData, cores: int):
         return self.get_transform().transform(normalised_data, cores)
+
+    def __call__(self, normalised_data: NormalisedData, cores: int):
+        return self.transform(normalised_data, cores)
 
     def detransform(self, track_length: int, outputs: List[np.ndarray]):
         return self.get_transform().detransform(track_length, outputs)

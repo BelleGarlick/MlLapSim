@@ -1,17 +1,18 @@
 import json
-import os
 
 import numpy as np
 import webdataset
 
 import toolkit.tracks.conversion
 from lapsim.encoder.encoder import extract_features
-from toolkit.tracks.splicer.models.splicer_input import PathInput
-from toolkit.tracks.splicer.splicer import splice
+from toolkit.tracks.splicer import PathInput
+from toolkit.tracks.splicer import splice
+
+from lapsim.preprocessor.encoder import encode
 from toolkit.tracks.models import Track
 from toolkit.utils import readers
 from toolkit.utils.logger import log
-from toolkit.tracks.splicer.models import *
+from lapsim.preprocessor.models import *
 
 
 def get_vehicle(vehicle_path):
@@ -97,41 +98,41 @@ def from_cli(
 
                 widths, angles, offsets = extract_features(track)
 
-                writer.write({
+                writer.write(encode({
                     "__key__": item["__key__"] + ("-flipped" if perform_flip else ""),
                     "id": item_id + ("-flipped" if perform_flip else ""),
-                    "track": np.array(track, dtype=np.float32).tobytes(),
-                    "vehicle": json.dumps(vehicle),
-                    "pos": np.array(positions, dtype=np.float32).tobytes(),
-                    "vel": np.array(velocities, dtype=np.float32).tobytes(),
-                    "acc": np.array(accelerations, dtype=np.float32).tobytes(),
-                    "widths": np.array(widths, dtype=np.float32).tobytes(),
-                    "angles": np.array(angles, dtype=np.float32).tobytes(),
-                    "offsets": np.array(offsets, dtype=np.float32).tobytes(),
-                    "flipped": int(perform_flip).to_bytes(),
-                })
+                    "track": track,
+                    "vehicle": vehicle,
+                    "pos": positions,
+                    "vel": velocities,
+                    "acc": accelerations,
+                    "widths": widths,
+                    "angles": angles,
+                    "offsets": offsets,
+                    "flipped": perform_flip
+                }))
 
     print(f"\rSpliced items complete.")
 
 
 if __name__ == "__main__":
+    # from_cli(
+    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-train-{00..24}.tar",
+    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
+    #     flip=True
+    # )
     from_cli(
-        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-train-{00..24}.tar",
-        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
+        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-validation-{00..00}.tar",
+        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-validation-%02d.tar",
         flip=True
     )
-    # from_cli(
-    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-train-{00..24}.tar",
-    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
-    #     flip=True
-    # )
-    # from_cli(
-    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-train-{00..24}.tar",
-    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
-    #     flip=True
-    # )
-    # from_cli(
-    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-train-{00..24}.tar",
-    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
-    #     flip=True
-    # )
+    from_cli(
+        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-test-{00..00}.tar",
+        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-test-%02d.tar",
+        flip=True
+    )
+    from_cli(
+        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-real-{00..02}.tar",
+        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-real-%02d.tar",
+        flip=False
+    )

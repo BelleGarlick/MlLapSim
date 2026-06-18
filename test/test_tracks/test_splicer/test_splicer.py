@@ -3,7 +3,7 @@ from pathlib import Path
 
 import toolkit.tracks.conversion
 from toolkit.tracks.models import Track
-from toolkit.tracks.splicer.models.splicer_input import PathInput
+from toolkit.tracks.splicer import PathInput
 from toolkit.utils import readers
 from toolkit.tracks import splicer
 from toolkit.tracks.splicer import SplicerInput

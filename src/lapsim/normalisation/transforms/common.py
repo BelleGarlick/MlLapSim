@@ -80,12 +80,12 @@ class TransformMethod(ABC):
 
     def perform_parallel_transforms(
             self,
-            function: Callable[[NormalisedData, 'TransformMethod', int], Any],
+            function: Callable[[NormalisedData, 'TransformMethod'], Any],
             normalised: NormalisedData,
             cores: int
     ):
         # Create inputs
-        map_inputs = [(function, normalised, self, track_index) for track_index in range(len(normalised))]
+        map_inputs = [(function, normalised, self) for track_index in range(len(normalised))]
         if cores == 1 or len(normalised) <= 1:
             for track_index in range(len(normalised.vehicles)):
                 return list(map(parallel_wrapper, map_inputs))

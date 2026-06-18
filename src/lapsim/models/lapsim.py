@@ -1,7 +1,7 @@
 import torch
 from torch import nn
+import webdataset
 
-from lapsim.encoder import Partition
 from lapsim.models.dense_nn import LapSimModelDense
 
 
@@ -34,11 +34,11 @@ class LapSimModel(nn.Module):
     def total_params(self):
         return sum(p.numel() for p in self.model.parameters())
 
-    def predict(self, partition: Partition):
+    def predict(self, dataset: webdataset.WebDataset):
         with torch.no_grad():
             self.model.eval()
 
-            x, (y_pos, y_vel), vehicles = self.bounds.normalise_and_transform(partition)
+            x, (y_pos, y_vel), vehicles = self.bounds.normalise_and_transform(dataset)
 
             pred_pos, pred_vel = self.model(
                 torch.tensor(x, dtype=torch.float32).to(self.device),
@@ -46,7 +46,7 @@ class LapSimModel(nn.Module):
             )
 
             pred_pos, pred_vel = self.bounds.detransform_and_denormalise(
-                len(partition.angles[0]),
+                len(dataset.angles[0]),
                 position=pred_pos.cpu().detach().numpy(),
                 velocity=pred_vel.cpu().detach().numpy()
             )
