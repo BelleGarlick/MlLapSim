@@ -1,95 +1,49 @@
 import numpy as np
 from toolkit import maths
 from lapsim.encoder.encoder import extract_features
-from lapsim.evals.evaluation import Evaluation
-from toolkit.tracks.models import SegmentationLine, Track
+# from lapsim.evals.evaluation import Evaluation
+from toolkit.tracks.models import Track
 
 """Evaluation toolkit module.
 
 This module provides the functions to evaluating two sets of spliced data. 
 """
 
-
-def evaluate(truth: dict, predicted: dict) -> Evaluation:
-    """Compare spliced data
-
-    Args:
-        truth: The ground truth data
-        predicted: The data predicted by the model
-
-    Returns:
-        Evaluation model
-    """
-    _all_vels = truth["vel"].tolist() + predicted["vel"].tolist()
-    min_vel, max_vel = min(_all_vels), max(_all_vels)
-
-    true_optimal_line = calculate_optimal_positions(truth)
-    estimated_optimal_line = calculate_optimal_positions(predicted)
-
-    position_deltas, position_percentage_errors = [], []
-    velocity_deltas, velocity_percentage_errors = [], []
-
-    for n in range(len(truth["track"])):
-        # Velocity errors
-        vel_delta = truth["vel"][n] - predicted["vel"][n]
-        velocity_deltas.append(vel_delta)
-        velocity_percentage_errors.append(abs(vel_delta) / (max_vel - min_vel) * 100)
-
-        # Position errors
-        distance = maths.distance(true_optimal_line[n], estimated_optimal_line[n])
-        if predicted["pos"][n] < truth["pos"][n]:
-            distance *= -1
-        position_deltas.append(distance)
-
-        position_percentage_errors.append(abs(predicted["pos"][n] - truth["pos"][n]) * 100)
-
-    apexes = find_apexes(truth)
-
-    return Evaluation.from_errors(
-        laptime=estimate_lap_time(truth),
-        predicted_laptime=estimate_lap_time(predicted),
-        position_deltas=position_deltas,
-        position_percentage_errors=position_percentage_errors,
-        velocity_deltas=velocity_deltas,
-        velocity_percentage_errors=velocity_percentage_errors,
-        apexes=apexes
-    )
-
-
-def evaluate2(truth: Track, predicted: Track) -> Evaluation:
-    """Compare spliced data irrespective of smoothing
-
-    Args:
-        truth: The ground truth data
-        predicted: The data predicted by the model
-
-    Returns:
-        Evaluation model
-    """
-    _all_vels = [x.vel for x in truth.segmentations] + [x.vel for x in predicted.segmentations]
-    min_vel, max_vel = min(_all_vels), max(_all_vels)
-
-    velocity_deltas, velocity_percentage_errors = [], []
-
-    for n in range(len(truth["track"])):
-        # Velocity errors
-        vel_delta = truth["vel"][n] - predicted["vel"][n]
-        velocity_deltas.append(vel_delta)
-        velocity_percentage_errors.append(abs(vel_delta) / (max_vel - min_vel) * 100)
-
-    positional_deltas, percentage_deltas = evaluate_position_errors_irrespective_of_smoothing(truth, predicted)
-
-    apexes = find_apexes(truth.segmentations)
-
-    return Evaluation.from_errors(
-        laptime=estimate_lap_time(truth),
-        predicted_laptime=estimate_lap_time(predicted),
-        position_deltas=positional_deltas,
-        position_percentage_errors=percentage_deltas,
-        velocity_deltas=velocity_deltas,
-        velocity_percentage_errors=velocity_percentage_errors,
-        apexes=apexes
-    )
+# todo could look back into this in the future
+# def evaluate2(truth: Track, predicted: Track) -> Evaluation:
+#     """Compare spliced data irrespective of smoothing
+#
+#     Args:
+#         truth: The ground truth data
+#         predicted: The data predicted by the model
+#
+#     Returns:
+#         Evaluation model
+#     """
+#     _all_vels = truth["vel"].tolist() + predicted["vel"].tolist()
+#     min_vel, max_vel = min(_all_vels), max(_all_vels)
+#
+#     velocity_deltas, velocity_percentage_errors = [], []
+#
+#     for n in range(len(truth["track"])):
+#         # Velocity errors
+#         vel_delta = truth["vel"][n] - predicted["vel"][n]
+#         velocity_deltas.append(vel_delta)
+#         velocity_percentage_errors.append(abs(vel_delta) / (max_vel - min_vel) * 100)
+#
+#     positional_deltas, percentage_deltas = evaluate_position_errors_irrespective_of_smoothing(truth, predicted)
+#
+#     apexes = find_apexes(truth.segmentations)
+#
+#     return Evaluation.from_errors(
+#         laptime=estimate_lap_time(truth),
+#         predicted_laptime=estimate_lap_time(predicted),
+#         position_deltas=positional_deltas,
+#         position_percentage_errors=percentage_deltas,
+#         velocity_deltas=velocity_deltas,
+#         velocity_percentage_errors=velocity_percentage_errors,
+#         apexes=apexes
+#     )
 
 
 def estimate_lap_time(track: Track) -> float:
@@ -215,3 +169,106 @@ def evaluate_position_errors_irrespective_of_smoothing(truth: Track, predicted: 
         return None
 
     return absolute_errors, percentage_errors
+
+
+def get_percentile(arr: Sequence[float], percentile: float) -> float:
+    values = sorted(arr)
+    idx = int(len(values) * percentile)
+    return values[idx]
+
+
+def create_eval_metrics_from_arr(prefix: str, arr):
+    return {
+        f"{prefix}mean": np.mean(arr),
+        f"{prefix}mean-abs": np.mean(np.abs(arr)),
+        f"{prefix}rmse": np.pow(np.mean(np.pow(arr, 2)), 1 / 2),
+        f"{prefix}percentile-25": get_percentile(np.abs(arr), 0.25),
+        f"{prefix}percentile-50": get_percentile(np.abs(arr), 0.50),
+        f"{prefix}percentile-75": get_percentile(np.abs(arr), 0.75),
+        f"{prefix}percentile-95": get_percentile(np.abs(arr), 0.95),
+        f"{prefix}max": np.max(np.abs(arr)),
+    }
+
+
+def evaluate_laptimes(comparison_pairs, distance_per_seg_line=10):
+    laptime_errors_labelled = [
+        (
+            calculated_track["id"],  # name
+            (len(calculated_track["track"]) * distance_per_seg_line) / 1000,  # n kilometers
+            estimate_lap_time(calculated_track) - estimate_lap_time(predicted_track))  # the error
+        for calculated_track, predicted_track in comparison_pairs
+    ]
+
+    laptime_errors_normalised = [
+        (key, error / length)
+        for key, length, error in laptime_errors_labelled
+    ]
+
+    laptime_errors_values = [
+        x[-1] for x in laptime_errors_labelled
+    ]
+    laptime_normalised_errors_values = [
+        x[-1] for x in laptime_errors_normalised
+    ]
+
+    return {
+        **create_eval_metrics_from_arr("laptime/", laptime_errors_values),
+        "laptime/sorted": [list(x) for x in sorted(laptime_errors_labelled, key=lambda x: np.abs(x[-1]))],
+
+        **create_eval_metrics_from_arr("laptime-per-kilometer/", laptime_normalised_errors_values),
+        "laptime-normalised/sorted": [list(x) for x in sorted(laptime_errors_normalised, key=lambda x: np.abs(x[-1]))],
+    }
+
+
+def evaluate_positions(comparison_pairs):
+    position_normalised_errors = [pair[0]["pos"] - pair[1]["pos"] for pair in comparison_pairs]
+    error_signs = [np.sign(x) for x in position_normalised_errors]
+
+    # Errors grouped by track
+    track_errors = [
+        np.linalg.norm(
+            calculate_optimal_positions(pair[0]) \
+            - calculate_optimal_positions(pair[1]),
+            axis=1
+        )
+        for pair in comparison_pairs
+    ]
+    track_errors = [err * sign for err, sign in zip(track_errors, error_signs)]
+
+    # map the apexes to the errors at those points
+    track_apexes = [find_apexes(pair[0]) for pair in comparison_pairs]
+    apex_errors = [errors[apexes] for errors, apexes in zip(track_errors, track_apexes)]
+
+    all_normalised_errors = np.concatenate(position_normalised_errors)
+    all_errors = np.concatenate(track_errors)
+    all_apex_errors = np.concatenate(apex_errors)
+
+    return {
+        **create_eval_metrics_from_arr("position/", all_errors),
+        **create_eval_metrics_from_arr("position/apex/", all_apex_errors),
+        **create_eval_metrics_from_arr("position/normalised/", all_normalised_errors)
+    }
+
+
+def evaluate_velocities(comparison_pairs):
+    velocity_errors = [pair[0]["vel"] - pair[1]["vel"] for pair in comparison_pairs]
+
+    # map the apexes to the errors at those points
+    track_apexes = [find_apexes(pair[0]) for pair in comparison_pairs]
+    apex_errors = [errors[apexes] for errors, apexes in zip(velocity_errors, track_apexes)]
+
+    all_velocity_errors = np.concatenate(velocity_errors)
+    all_apex_errors = np.concatenate(apex_errors)
+
+    return {
+        **create_eval_metrics_from_arr("velocity/", all_velocity_errors),
+        **create_eval_metrics_from_arr("velocity/apex/", all_apex_errors),
+    }
+
+
+def evaluate(pairs: list[tuple[dict, dict]], distance_per_seg_line=10) -> dict:
+    return {
+        **evaluate_laptimes(pairs, distance_per_seg_line=distance_per_seg_line),
+        **evaluate_positions(pairs),
+        **evaluate_velocities(pairs),
+    }

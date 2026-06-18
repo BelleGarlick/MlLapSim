@@ -166,7 +166,7 @@ def plot_track(
         plt.show()
 
 
-def plot_full(tracks: List[RenderItem], fig_size=None, title: str = None):
+def plot_full(tracks: List[RenderItem], fig_size=None, title: str = None, distance=10):
     """Plot the combination of the other plots with subplots
 
     Args:
@@ -186,8 +186,8 @@ def plot_full(tracks: List[RenderItem], fig_size=None, title: str = None):
     if title:
         plt.title(title)
     plot_track(tracks, show=False, ax=ax0, show_axis=False)
-    plot_velocities(tracks, show=False, ax=ax1, show_axis=False)
-    plot_lateral_deviation(tracks, show=False, ax=ax2, show_axis=False)
+    plot_velocities(tracks, show=False, ax=ax1, show_axis=False, distance=distance)
+    plot_lateral_deviation(tracks, show=False, ax=ax2, show_axis=False, distance=distance)
 
     plt.show()
 
