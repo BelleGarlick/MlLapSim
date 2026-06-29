@@ -11,7 +11,7 @@ from lapsim.normalisation.transforms.common import TransformMethod
 
 class BaseWindowTransform(TransformMethod):
 
-    def transform(self, normalised: NormalisedData, cores: int):
+    def transform(self, normalised: NormalisedData):
         raise NotImplementedError
 
     def detransform(self, track_length: int, outputs: List[np.ndarray]) -> List[np.ndarray]:

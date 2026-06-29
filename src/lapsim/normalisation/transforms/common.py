@@ -72,7 +72,7 @@ class TransformMethod(ABC):
         self.lag: int = 0
         self.time_to_vec: bool = False
 
-    def transform(self, normalised: NormalisedData, cores: int):
+    def transform(self, normalised: NormalisedData):
         raise NotImplementedError
 
     def detransform(self, track_length: int, outputs: List[np.ndarray]) -> List[np.ndarray]:

@@ -1,4 +1,3 @@
-from lapsim.encoder.partition import Partition
 from lapsim.normalisation.transform_normalisation import TransformNormalisation
 from utils.test_base import TestBase
 

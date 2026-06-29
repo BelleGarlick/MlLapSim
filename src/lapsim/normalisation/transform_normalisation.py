@@ -1,15 +1,13 @@
 import json
+import math
 import os
 import threading
 from pathlib import Path
-from typing import Union, List, Tuple
+from typing import Union
 
 import numpy as np
 from pydantic import BaseModel, Field
-from webdataset.compat import WebDataset
 
-from lapsim.normalisation.normalisation_bounds import NormalisationBounds
-from lapsim.encoder.partition import Partition
 from lapsim.normalisation.transforms.transformer import Transform
 
 
@@ -20,7 +18,34 @@ be used for normalising and transforming the input data to the network."""
 class TransformNormalisation(BaseModel):
 
     transform: Transform = Field(default_factory=lambda: Transform())
-    bounds: NormalisationBounds = Field(default_factory=lambda: NormalisationBounds())
+
+    # Normalisation bounds
+    max_width: float = Field(default_factory=lambda: -math.inf)
+    min_width: float = Field(default_factory=lambda: math.inf)
+    max_angle: float = 0
+    max_offset: float = 0
+    max_velocity: float = Field(default_factory=lambda: -math.inf)
+    min_velocity: float = Field(default_factory=lambda: math.inf)
+    max_vehicle: list[float] | None = None
+    min_vehicle: list[float] | None = None
+
+    def extend(self, record: dict):
+        vehicle = self.transform.transform_vehicle(record["vehicle"])
+
+        self.max_angle = max(self.max_angle, np.max(np.abs(record["angles"])))
+        self.max_offset = max(self.max_offset, np.max(np.abs(record["offsets"])))
+        self.min_width = min(self.min_width, np.min(np.abs(record["widths"])))
+        self.max_width = max(self.max_width, np.max(np.abs(record["widths"])))
+        self.min_velocity = min(self.min_velocity, np.min(np.abs(record["vel"])))
+        self.max_velocity = max(self.max_velocity, np.max(np.abs(record["vel"])))
+
+        if not self.min_vehicle:
+            self.min_vehicle = vehicle.tolist()
+            self.max_vehicle = vehicle.tolist()
+        else:
+            for i in range(len(vehicle)):
+                self.min_vehicle[i] = min(self.min_vehicle[i], vehicle[i])
+                self.max_vehicle[i] = max(self.max_vehicle[i], vehicle[i])
 
     def save(self, path):
         with open(path, "w+") as file:
@@ -40,23 +65,16 @@ class TransformNormalisation(BaseModel):
 
             return TransformNormalisation.model_validate(data)
 
-    def extend(self, partition: Partition):
-        """Extend the normalisation bounds based on the given partition"""
-        vehicles = self.transform.vectorise_vehicles(partition.vehicles)
-        self.bounds.extend(partition, vehicles)
-
-        return self
-
     def detransform_and_denormalise(
             self,
             track_length: int,
-            position: List[np.ndarray],
-            velocity: List[np.ndarray]
-    ) -> Tuple[np.ndarray, np.ndarray]:
+            position: list[np.ndarray],
+            velocity: list[np.ndarray]
+    ) -> tuple[np.ndarray, np.ndarray]:
         position, velocity = self.transform.detransform(track_length, [position, velocity])
         return (
             position,
-            velocity * (self.bounds.max_velocity - self.bounds.min_velocity) + self.bounds.min_velocity
+            velocity * (self.max_velocity - self.min_velocity) + self.min_velocity
         )
 
     def async_load_and_normalise_partition(self, partition_path: Union[str, Path], cache_tensor_prefix=None, cores: int = 1):
@@ -74,19 +92,22 @@ class TransformNormalisation(BaseModel):
         return loader
 
     def normalise(self, record):
-        bounds = self.bounds
-
         return {
-            'widths': (record["widths"] - bounds.min_width) / (bounds.max_width - bounds.min_width),
-            'angles': record["angles"] / bounds.max_angle,
-            'offsets': record["offsets"] / bounds.max_offset,
+            'widths': (record["widths"] - self.min_width) / (self.max_width - self.min_width),
+            'angles': record["angles"] / self.max_angle,
+            'offsets': record["offsets"] / self.max_offset,
 
-            'vehicle': (self.transform.transform_vehicle(record["vehicle"]) - bounds.min_vehicle) / (
-                        np.array(bounds.max_vehicle) - np.array(bounds.min_vehicle)),
+            'vehicle': (self.transform.transform_vehicle(record["vehicle"]) - self.min_vehicle) / (
+                        np.array(self.max_vehicle) - np.array(self.min_vehicle)),
 
+            # 'positions': record["positions"],
+            # 'velocities': (record["velocities"] - self.min_velocity) / (self.max_velocity - self.min_velocity),
+
+            # TODO deprecate
             'pos': record["pos"],
-            'vel': (record["vel"] - bounds.min_velocity) / (bounds.max_velocity - bounds.min_velocity),
+            'vel': (record["vel"] - self.min_velocity) / (self.max_velocity - self.min_velocity),
         }
+
 
 class AsyncPartitionNormalisationLoader(threading.Thread):
     """Helper object for loading and normalising the partition asyncronously"""

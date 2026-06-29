@@ -46,6 +46,7 @@ class Transform(BaseModel):
     sampling: Optional[int] = None
 
     lag: Optional[int] = None
+    single_sample: bool = False
 
     patch_size: int = 1
     time_to_vec: bool = False  # Should always be relative to the track rather than current track window otherwise will always learn to predict for when values equal 1
@@ -111,14 +112,15 @@ class Transform(BaseModel):
         transform.lag = self.lag
         transform.foresight = self.foresight
         transform.time_to_vec = self.time_to_vec
+        transform.single_sample = self.single_sample
 
         return transform
 
-    def transform(self, normalised_data: NormalisedData, cores: int):
-        return self.get_transform().transform(normalised_data, cores)
+    def transform(self, normalised_data: NormalisedData):
+        return self.get_transform().transform(normalised_data)
 
-    def __call__(self, normalised_data: NormalisedData, cores: int):
-        return self.transform(normalised_data, cores)
+    def __call__(self, normalised_data: NormalisedData):
+        return self.transform(normalised_data)
 
     def detransform(self, track_length: int, outputs: List[np.ndarray]):
         return self.get_transform().detransform(track_length, outputs)

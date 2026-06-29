@@ -1,12 +1,15 @@
 from . import splines
-
-from toolkit.maths.c.lines import *
-from toolkit.maths.c.points import *
-from toolkit.maths.c.intersections import *
-from toolkit.maths.c.functional import *
-from toolkit.maths.c.angles import *
-from toolkit.maths.c.normals import *
-from toolkit.maths.c.splines import *
+from .normals import (
+    create_normals_on_path,
+    create_line_normals_from_points,
+    trim_normals_to_boundary
+)
+from .angles import *
+from .points import *
+from .lines import *
+from .intersections import *
+from .functional import *
+from .splines import *
 
 # noinspection PyUnresolvedReferences
 __all__ = [

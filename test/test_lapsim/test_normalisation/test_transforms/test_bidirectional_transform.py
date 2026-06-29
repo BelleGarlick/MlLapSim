@@ -1,8 +1,5 @@
 import numpy as np
 
-from lapsim.encoder.partition import Partition
-from lapsim.normalisation import TransformNormalisation
-from lapsim.normalisation.transforms.transformer import Transform
 from test_lapsim.test_normalisation.test_transforms.test_transform_base import TestTransformBase
 
 

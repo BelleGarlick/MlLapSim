@@ -10,11 +10,13 @@ from .intersections import segment_intersections
 from .points import get_points_on_paths
 
 
+from typing import List, Tuple
+
 # Create shorthand types for points and lines
-ctypedef tuple[double, double] Point
-ctypedef list[tuple[double, double]] Points
-ctypedef tuple[double, double, double, double] Line
-ctypedef list[tuple[double, double, double, double]] Lines
+ctypedef tuple Point
+ctypedef list Points
+ctypedef tuple Line
+ctypedef list Lines
 
 
 @cython.boundscheck(False)

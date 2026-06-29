@@ -1,5 +1,8 @@
+import random
+
 import numpy as np
 
+from lapsim.normalisation.transforms.sampling import get_target_output
 from lapsim.normalisation.transforms.window.base import BaseWindowTransform
 
 
@@ -13,65 +16,45 @@ train upon."""
 
 class FlatWindowTransform(BaseWindowTransform):
 
-    def transform(self, normalised_records: list[dict], cores: int):
-        """Encode the data into a series of windows (as described in Garlick &
-        Bradley 2021, but compress each window into a single vector containing
-        widths, angles, offsets and vehicles.
-
-        Args:
-            normalised: The normalised partition from the normalisation step
-            cores: Number of cores used to multiprocess the track using
-
-        Returns:
-            (x, vehicles), (y_pos, y_vel)
-        """
-        # Get the track window representations
-        # track_encodings = self.perform_parallel_transforms(_flat_window, normalised, cores)
-        normalised_records = list(normalised_records)
-
-        args = [(record, self) for record in normalised_records]
-        track_encodings = list(map(flat_window, args))
-
+    def transform(self, record):
         window_length = self.foresight * 2 + 1
-        total_window_size = 3 * window_length  # width,offsets,angles
 
-        total_normals_count = sum([len(x[0]) for x in track_encodings])
+        track_length = len(record["widths"])
 
-        # Preallocate the memory, this makes it much faster and memory efficient as
-        # the arrays don't need reallocating
-        x = np.zeros((total_normals_count, total_window_size), dtype=np.float32)
-        vehicles = np.zeros((total_normals_count, len(track_encodings[0][1])), dtype=np.float32)
+        # Select the indexes that will be sampled
+        indexes = list(range(track_length))
+        if self.single_sample:
+            indexes = [random.randint(0, track_length - 1)]
 
-        global_index = 0
-        for track_encoding, vehicle_encoding in track_encodings:
-            track_length = len(track_encoding)
+        # Create the input vector
+        x = np.zeros((len(indexes), window_length * len(self.inputs)))
+        for out_index, index in enumerate(indexes):
+            window_data = []
+            for input_key in self.inputs:
+                window_modality = np.zeros(self.foresight * 2 + 1)
+                window_modality_input = record[input_key]
+                for i, f in enumerate(range(index - self.foresight, index + self.foresight + 1)):
+                    window_modality[i] = window_modality_input[f % track_length]
 
-            x[global_index: global_index + track_length] = track_encoding
-            vehicles[global_index:global_index + track_length] = vehicle_encoding
+                window_data.append(window_modality)
+            x[out_index] = np.concatenate(window_data)
 
-            global_index += track_length
+        # Create the vehicles vector
+        vehicles = np.array([record["vehicle"]] * len(indexes))
 
-        return x, vehicles
+        # Create the targets vector
+        outputs = [
+            np.zeros((len(indexes), self.sampling * 2 + 1)),
+            np.zeros((len(indexes), self.sampling * 2 + 1)),
+        ]
+        for idx, output_key in enumerate(["pos", "vel"]):
+            for out_index, index in enumerate(indexes):
+                window_modality = np.zeros(self.sampling * 2 + 1)
+                window_modality_input = record[output_key]
+                for i, s in enumerate(range(index - self.sampling, index + self.sampling + 1)):
+                    window_modality[i] = window_modality_input[s % track_length]
 
+                outputs[idx][out_index] = window_modality
 
-def flat_window(args):
-    record, transform = args
-
-    window_length = transform.foresight * 2 + 1
-
-    track_length = len(record["widths"])
-    x = np.zeros((track_length, window_length * len(transform.inputs)))
-
-    # Extract inputs from the transform based on defined keys
-    inputs = [record[_inp] for _inp in transform.inputs]
-
-    for normal_index in range(track_length):
-        for i, f in enumerate(range(normal_index - transform.foresight, normal_index + transform.foresight + 1)):
-            index = f % track_length
-
-            # Iterate through the inputs splicing in where needed
-            for inp_idx in range(len(transform.inputs)):
-                x[normal_index, i + (window_length * inp_idx)] = inputs[inp_idx][index]
-
-    return x, record["vehicle"]
+        return x, vehicles, outputs[0], outputs[1]
 

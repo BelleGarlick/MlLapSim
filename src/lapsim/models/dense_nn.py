@@ -11,17 +11,16 @@ def hard_sigmoid(x):
 
 class LapSimModelDense(nn.Module):
 
-    def __init__(self):
+    def __init__(self, hidden_size=400):
         super().__init__()
 
         self.d1 = nn.Linear(739, 450)
-        self.d2 = nn.Linear(450, 200)
-        self.d3 = nn.Linear(200, 200)
+        self.d2 = nn.Linear(450, hidden_size)
 
-        self.v1 = nn.Linear(200, 200)
+        self.v1 = nn.Linear(hidden_size, 200)
         self.v2 = nn.Linear(200, 9)
 
-        self.p1 = nn.Linear(200, 200)
+        self.p1 = nn.Linear(hidden_size, 200)
         self.p2 = nn.Linear(200, 9)
 
     def forward(self, windows, vehicles):
@@ -29,10 +28,10 @@ class LapSimModelDense(nn.Module):
 
         x = F.relu(self.d1(x))
         x = F.relu(self.d2(x))
-        x = F.relu(self.d3(x)) + x
+        # x = F.relu(self.d3(x)) + x
 
-        p = F.relu(self.p1(x)) + x
-        v = F.relu(self.v1(x)) + x
+        p = F.relu(self.p1(x))
+        v = F.relu(self.v1(x))
 
         pos = hard_sigmoid(self.p2(p))
         vel = self.v2(v)

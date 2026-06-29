@@ -29,7 +29,7 @@ line as the most recent point in time.
 
 class BidirectionalTransformMethod(TransformMethod):
 
-    def transform(self, normalised: NormalisedData, cores: int):
+    def transform(self, normalised: NormalisedData):
         """The bidirectional history transform. This works by iterating through the
         track length and inputing the history of the track up to this point in time
         and by passing in the future track doing the same but in reverse. This

@@ -1,55 +1,91 @@
 import numpy as np
-from toolkit import maths
+from typing import List, Tuple
 
+def tj(ti: float, pi: Tuple[float, float], pj: Tuple[float, float], alpha: float) -> float:
+    xi, yi = pi
+    xj, yj = pj
+    dx, dy = xj - xi, yj - yi
+    l = (dx ** 2 + dy ** 2) ** 0.5
+    return ti + l ** alpha
 
-# TODO Optimise using better methods, add documentation and testing
+def sub_catmull_rom_spline(
+    p0: Tuple[float, float],
+    p1: Tuple[float, float],
+    p2: Tuple[float, float],
+    p3: Tuple[float, float],
+    num_points: int,
+    alpha: float = 0.5,
+) -> List[Tuple[float, float]]:
+    t0 = 0.0
+    t1 = tj(t0, p0, p1, alpha)
+    t2 = tj(t1, p1, p2, alpha)
+    t3 = tj(t2, p2, p3, alpha)
 
+    d0 = t1 - t0
+    d1 = t2 - t1
+    d2 = t3 - t2
+    d3 = t2 - t0
+    d4 = t3 - t1
 
-def bspline(points, interpolations=5_000):
-    from scipy.interpolate import splrep, splev
+    if d0 == 0 or d1 == 0 or d2 == 0 or d3 == 0 or d4 == 0:
+        # In case of overlapping points, we might have zero divisions.
+        # Original code raises an exception.
+        raise Exception("Invalid input")
 
-    initial_point = points[0].copy()
-    points = np.vstack((points, points))
+    t_values = np.linspace(t1, t2, num_points + 1)
+    
+    items = []
+    for t in t_values:
+        e0 = (t1 - t) / d0
+        e1a = (t2 - t) / d1
+        e1b = (t2 - t) / d3
+        e2a = (t3 - t) / d2
+        e2b = (t3 - t) / d4
+        e3a = (t - t0) / d0
+        e3b = (t - t0) / d3
+        e4a = (t - t1) / d1
+        e4b = (t - t1) / d4
+        e5 = (t - t2) / d2
 
-    points = np.array(points)
-    x = points[:, 0]
-    y = points[:, 1]
+        a1x = e0 * p0[0] + e3a * p1[0]
+        a1y = e0 * p0[1] + e3a * p1[1]
+        a2x = e1a * p1[0] + e4a * p2[0]
+        a2y = e1a * p1[1] + e4a * p2[1]
+        a3x = e2a * p2[0] + e5 * p3[0]
+        a3y = e2a * p2[1] + e5 * p3[1]
+        
+        b1x = e1b * a1x + e3b * a2x
+        b1y = e1b * a1y + e3b * a2y
+        b2x = e2b * a2x + e4b * a3x
+        b2y = e2b * a2y + e4b * a3y
 
-    t = range(len(points))
-    ipl_t = np.linspace(0.0, len(points) - 1, interpolations * 2)
+        items.append((
+            float(e1a * b1x + e4a * b2x),
+            float(e1a * b1y + e4a * b2y)
+        ))
 
-    x_tup = splrep(t, x, k=3)
-    y_tup = splrep(t, y, k=3)
+    return items
 
-    x_list = list(x_tup)
-    xl = x.tolist()
-    x_list[1] = xl + [0.0, 0.0, 0.0, 0.0]
+def catmull_rom_spline(points: List[Tuple[float, float]], num_points: int = 10, loop: bool = False) -> List[Tuple[float, float]]:
+    if len(points) == 0:
+        return []
 
-    y_list = list(y_tup)
-    yl = y.tolist()
-    y_list[1] = yl + [0.0, 0.0, 0.0, 0.0]
+    if loop:
+        control_points = [points[-1]] + points + points[:2]
+    else:
+        control_points = points
 
-    x_i = splev(ipl_t, x_list)
-    y_i = splev(ipl_t, y_list)
+    all_splines = []
+    # num_segments = len(control_points) - 3
+    n = len(control_points)
+    for i in range(n - 3):
+        subspline = sub_catmull_rom_spline(
+            control_points[i], 
+            control_points[i+1], 
+            control_points[i+2], 
+            control_points[i+3], 
+            num_points
+        )
+        all_splines += subspline[:-1]
 
-    # Conect track as a loop as close to start - this doesn't mean the line starts at same place though
-    start_index, end_index = interpolations // 2, None
-    start_point = np.array([x_i[start_index], y_i[start_index]])
-    closest_distance = None
-    for i in range(interpolations, 2 * interpolations):
-        end_point = np.array([x_i[i], y_i[i]])
-        dist = maths.distance(start_point, end_point)
-        if closest_distance is None or dist < closest_distance:
-            closest_distance = dist
-            end_index = i - 1
-
-    x_i = np.expand_dims(x_i[start_index:end_index], axis=0)
-    y_i = np.expand_dims(y_i[start_index:end_index], axis=0)
-    splined_points = np.concatenate((x_i, y_i)).T
-
-    # Start at orignal starting point
-    distances = [maths.distance(splined_points[i], initial_point) for i in range(len(splined_points))]
-    start_point = np.argmin(distances)
-    splined_points = np.concatenate((splined_points[start_point:], splined_points[:start_point]))
-
-    return splined_points
+    return all_splines

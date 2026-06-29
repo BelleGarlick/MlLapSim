@@ -16,7 +16,7 @@ allowing a CNN to train upon."""
 
 class WindowTransform(BaseWindowTransform):
 
-    def transform(self, normalised: NormalisedData, cores: int):
+    def transform(self, normalised: NormalisedData):
         """Encode the data into a series of windows (as described in Garlick &
         Bradley 2021, where each window is a 3 x (2f+1) matrix which can be trained
         with a CNN. Vehicles aren't included in the main input and need to be fed

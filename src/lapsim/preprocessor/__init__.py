@@ -1,14 +1,12 @@
-import json
-
 import numpy as np
 import webdataset
 
 import toolkit.tracks.conversion
-from lapsim.encoder.encoder import extract_features
-from toolkit.tracks.splicer import PathInput
-from toolkit.tracks.splicer import splice
 
 from lapsim.preprocessor.encoder import encode
+from lapsim.preprocessor.features import extract_features
+from lapsim.preprocessor.models.splicer_input import PathInput
+from lapsim.preprocessor.splicer import splice
 from toolkit.tracks.models import Track
 from toolkit.utils import readers
 from toolkit.utils.logger import log
@@ -53,6 +51,9 @@ def from_cli(
     # Scan all files to build the splicer inputs
     with webdataset.ShardWriter(dest, maxsize=500_000_000) as writer:
         for i, item in enumerate(source_dataset):
+            if item["metadata-variant"].decode() != "Streets of Willow Springs Medium Course with Chicane":
+                continue
+
             item_id = item['id'].decode()
             print(f"\r{i + 1} {item_id} " + " " * 20, end="")
 
@@ -67,7 +68,31 @@ def from_cli(
 
             # Extract track from the record
             params.track = toolkit.tracks.conversion.from_xyrl(item['track'].decode())
-            params.track = toolkit.tracks.smoother.smooth_track(params.track, spacing=spacing)
+            # params.track = toolkit.tracks.smoother.smooth_track(params.track, spacing=spacing)
+
+            track_raw = item['track'].decode().split("\n")[1:]
+            data = [x.split(",") for x in track_raw if x != ""]
+            data = [[float(b) for b in x] for x in data]
+
+            print(data[1365])
+            del data[1365]
+
+            import matplotlib.pyplot as plt
+
+            # 1356
+
+            plt.plot([x[0] for x in data], [x[1] for x in data])
+            plt.scatter([data[1365][0]], [data[1365][1]])
+            # for i, d in enumerate(data):
+            #     plt.text(d[0], d[1], str(i))
+            for i, seg in enumerate(params.track.segmentations):
+                plt.plot([seg.x1, seg.x2], [seg.y1, seg.y2])
+                plt.axis("equal")
+            plt.show()
+
+
+            breakpoint()
+
 
             # Load optimal path data if exists
             optimal_path = item["optimal_path"].decode()
@@ -121,16 +146,16 @@ if __name__ == "__main__":
     #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-train-%02d.tar",
     #     flip=True
     # )
-    from_cli(
-        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-validation-{00..00}.tar",
-        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-validation-%02d.tar",
-        flip=True
-    )
-    from_cli(
-        src="/Users/belle/Developer/MlLapSim/dataset/lapsim-test-{00..00}.tar",
-        dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-test-%02d.tar",
-        flip=True
-    )
+    # from_cli(
+    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-validation-{00..00}.tar",
+    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-validation-%02d.tar",
+    #     flip=True
+    # )
+    # from_cli(
+    #     src="/Users/belle/Developer/MlLapSim/dataset/lapsim-test-{00..00}.tar",
+    #     dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-test-%02d.tar",
+    #     flip=True
+    # )
     from_cli(
         src="/Users/belle/Developer/MlLapSim/dataset/lapsim-real-{00..02}.tar",
         dest="/Users/belle/Developer/MlLapSim/dataset/spliced-again-10/lapsim-real-%02d.tar",

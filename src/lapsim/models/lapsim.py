@@ -2,7 +2,6 @@ from typing import Sequence
 
 import torch
 from torch import nn
-import webdataset
 
 from lapsim.models.dense_nn import LapSimModelDense
 
@@ -54,7 +53,7 @@ class LapSimModel(nn.Module):
 
                 # Normalise the record and reshape it to the data the model trains upon
                 normalised = self.bounds.normalise(record)
-                transformed = self.bounds.transform.transform([normalised], cores=4)
+                transformed = self.bounds.transform(normalised)
 
                 # Predict the model output
                 pred_pos, pred_vel = self.model(

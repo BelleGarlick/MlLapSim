@@ -1,7 +1,9 @@
+from typing import Sequence
+
 import numpy as np
+
+from lapsim.preprocessor.features import extract_features
 from toolkit import maths
-from lapsim.encoder.encoder import extract_features
-# from lapsim.evals.evaluation import Evaluation
 from toolkit.tracks.models import Track
 
 """Evaluation toolkit module.

@@ -32,7 +32,7 @@ def smooth_track(track: Track, spacing: Optional[int] = None) -> Track:
     left_boundary = maths.catmull_rom_spline(track.left_line(), SPLINE, True)
     right_boundary = maths.catmull_rom_spline(track.right_line(), SPLINE, True)
 
-    smooth_normals = _smooth_normals(normals, iterations=400, width=max_width)
+    smooth_normals = _smooth_normals(normals, iterations=0, width=max_width)
 
     # Extend normals and find all collisions they half normals make with the boundary
     left_normals, right_normals = _split_normals(smooth_normals)
