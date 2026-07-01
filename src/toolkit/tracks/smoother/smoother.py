@@ -30,17 +30,17 @@ def _smooth_normals(normals: List[List[float]], iterations: int, width: float) -
     """
     # Smooth the normals
     centeres = maths.line_centers(normals)
-    vectors = maths.sub_points(
+    vectors = np.array(maths.sub_points(
         maths.start_points(normals),
         centeres
-    )
+    ))
 
     max_angle = math.pi / 3
 
     for _ in range(iterations):
-        updated_vectors = maths.add_points_lists([
-            maths.roll(vectors, -1), vectors, maths.roll(vectors, 1)
-        ])
+        updated_vectors = np.roll(vectors, -1, axis=0)\
+            + vectors\
+            + np.roll(vectors, 1, axis=0)
 
         angles = maths.multi_angle_between_lines(
             [[px + vx, py + vy, px, py]
@@ -61,14 +61,14 @@ def _smooth_normals(normals: List[List[float]], iterations: int, width: float) -
         for px, py in vectors
     ]
 
-    return [
+    return np.array([
         [
             centeres[i][0] + vectors[i][0],
             centeres[i][1] + vectors[i][1],
             centeres[i][0] - vectors[i][0],
             centeres[i][1] - vectors[i][1]]
         for i in range(len(centeres))
-    ]
+    ])
 
 
 def _split_normals(normals: List[List[float]]) -> Tuple[List[List[float]], List[List[float]]]:
@@ -114,34 +114,25 @@ def _extend_normals_until_collision(
 
     # Create boundary line and spatial map of boundary lines
     boundary_lines = maths.points_to_lines(boundary_points)
-    boundary_lines = maths.roll(boundary_lines, 1)
-    spatial_map_cell_size = max(maths.line_lengths(half_normal)) * max_extensions
-    boundary_spatial_map = SpatialMap(spatial_map_cell_size * 2)
-    for i in range(len(boundary_points)):
-        boundary_spatial_map.add_item(SpatialLineItem(boundary_points[i - 1], boundary_points[i]))
 
     # Loop through each normal and see the collision and the boundary index
     # where the collision occurs. If no collision is found, extend the line a
     # few times until the collision is found, if not throw an error.
     for i, normal in enumerate(half_normal):
-        vec = maths.sub_point(normal[2:], normal[:2])
+        vec = normal[2:] - normal[:2]
         for extension in range(max_extensions):
-            extended_normal = np.array([  # TODO Remove np.array
-                normal[0],
-                normal[1],
-                normal[2] + vec[0] * extension,
-                normal[3] + vec[1] * extension
-            ])
-            center = (extended_normal[:2] + extended_normal[2:]) / 2
+            extended_normal = np.hstack((normal[:2], normal[2:] + vec * extension))
+
+            # todo filter on aabb in the segment intersections
 
             # Find all collisions with the extended normal
-            possible_indicies = boundary_spatial_map.get_items(center)
             collisions, intersections = maths.segment_intersections(
                 extended_normal,
-                maths.at_indexes(boundary_lines, possible_indicies),
-                return_indexes=True)
+                boundary_lines,
+                return_indexes=True
+            )
 
-            normal_collisions[i] = collisions, maths.at_indexes(possible_indicies, intersections)
+            normal_collisions[i] = collisions, intersections
 
             if len(collisions) > 0:
                 break

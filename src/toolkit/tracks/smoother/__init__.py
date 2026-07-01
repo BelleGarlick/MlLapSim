@@ -1,5 +1,7 @@
 from typing import Optional
 
+import numpy as np
+
 from toolkit import maths
 
 from toolkit.tracks.models import Track, SegmentationLine
@@ -15,7 +17,7 @@ from toolkit.tracks.smoother.smoother import (
 SPLINE = 5
 
 
-def smooth_track(track: Track, spacing: Optional[int] = None) -> Track:
+def smooth_track(track: Track, spacing: Optional[int] = None, iter=100) -> Track:
     normals = [seg.arr() for seg in track.segmentations]
     max_width = max(maths.line_lengths(normals)) * 2
 
@@ -29,16 +31,16 @@ def smooth_track(track: Track, spacing: Optional[int] = None) -> Track:
         # Calculate new normals on track
         normals = maths.create_normals_on_path(path, 80, corrected_normal_spacing)
 
-    left_boundary = maths.catmull_rom_spline(track.left_line(), SPLINE, True)
-    right_boundary = maths.catmull_rom_spline(track.right_line(), SPLINE, True)
+    left_boundary = np.array(maths.catmull_rom_spline(track.left_line(), SPLINE, True))
+    right_boundary = np.array(maths.catmull_rom_spline(track.right_line(), SPLINE, True))
 
-    smooth_normals = _smooth_normals(normals, iterations=0, width=max_width)
+    smooth_normals = _smooth_normals(normals, iterations=iter, width=max_width)
 
     # Extend normals and find all collisions they half normals make with the boundary
     left_normals, right_normals = _split_normals(smooth_normals)
 
-    left_normal_collisions = _extend_normals_until_collision(left_normals, left_boundary)
-    right_normal_collisions = _extend_normals_until_collision(right_normals, right_boundary)
+    left_normal_collisions = _extend_normals_until_collision(np.array(left_normals), left_boundary)
+    right_normal_collisions = _extend_normals_until_collision(np.array(right_normals), right_boundary)
 
     # Collapse all collisions into one collision per normal
     left_collisions = _collapse_collisions_pairs(left_normals, left_normal_collisions, len(left_boundary))

@@ -2,11 +2,11 @@ from typing import Tuple, List, Optional
 
 import numpy as np
 
+from maths import create_line_normals_from_points
 from toolkit import maths
 from toolkit.tracks.models import Track, SegmentationLine
 from ..path import shortest_path
 from ..smoother import _split_normals, _extend_normals_until_collision, _collapse_collisions_pairs
-from ...maths import create_line_normals_from_points
 
 """XYRL Track Conversion
 

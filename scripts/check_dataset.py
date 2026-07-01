@@ -1,10 +1,7 @@
-import random
-import shutil
 import sys
 import os
 
 import matplotlib
-import multiprocessing
 from toolkit import maths
 
 matplotlib.use('TkAgg')
@@ -254,40 +251,42 @@ def process_file(file, plot=True, auto_delete=False):
 
 
 if __name__ == "__main__":
+    training_path = '/Users/belle/Downloads/Version 3/training'
+    validation_path = '/Users/belle/Downloads/Version 3/test'
+    files = [x for x in os.listdir(training_path) if x[0] != "."]
+    print(len(files))
 
-    # with open("boundaries.json", "r") as f:
-    #     boundaries = np.array(json.load(f))
+    # tracks = random.sample(files, 5000)
+    # print(tracks)
     #
-    #     print(boundary_has_dodgy_angle(boundaries))
+    # for track in tracks:
+    #     shutil.move(training_path + "/" + track, validation_path + "/" + track)
+
+    # for dir in check_dirs:
+    #     print(dir)
+    #     simulations = sorted([x for x in os.listdir(dir) if x[0] != "."])
+    #     random.shuffle(simulations)
     #
-    # import sys
-    # sys.exit(0)
-
-    for dir in check_dirs:
-        print(dir)
-        simulations = sorted([x for x in os.listdir(dir) if x[0] != "."])
-        random.shuffle(simulations)
-
-        with multiprocessing.Pool(processes=16) as pool:
-
-            count = 0
-            for i in range(0, len(simulations), BATCH_SIZE):
-                print(f"\r{count}/{i}", end="")
-
-                subset = simulations[i:i + BATCH_SIZE]
-                args = [dir + "/" + str(x) for x in subset]
-
-                dodge_files = pool.map(process_file, args) \
-                    if BATCH_SIZE > 1 else \
-                    list(map(process_file, args))
-
-                pairs = zip(subset, dodge_files)
-                pairs = [x[0] for x in pairs if x[1]]
-                count += len(pairs)
-
-                for sim in pairs:
-                    print(sim)
-                    input_path = os.path.join(dir, sim)
-                    output_path = os.path.join(error_tracks_path, sim)
-                    os.makedirs(error_tracks_path, exist_ok=True)
-                    shutil.move(input_path, output_path)
+    #     with multiprocessing.Pool(processes=16) as pool:
+    #
+    #         count = 0
+    #         for i in range(0, len(simulations), BATCH_SIZE):
+    #             print(f"\r{count}/{i}", end="")
+    #
+    #             subset = simulations[i:i + BATCH_SIZE]
+    #             args = [dir + "/" + str(x) for x in subset]
+    #
+    #             dodge_files = pool.map(process_file, args) \
+    #                 if BATCH_SIZE > 1 else \
+    #                 list(map(process_file, args))
+    #
+    #             pairs = zip(subset, dodge_files)
+    #             pairs = [x[0] for x in pairs if x[1]]
+    #             count += len(pairs)
+    #
+    #             for sim in pairs:
+    #                 print(sim)
+    #                 input_path = os.path.join(dir, sim)
+    #                 output_path = os.path.join(error_tracks_path, sim)
+    #                 os.makedirs(error_tracks_path, exist_ok=True)
+    #                 shutil.move(input_path, output_path)

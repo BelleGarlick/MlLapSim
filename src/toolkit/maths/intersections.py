@@ -1,10 +1,9 @@
 import numpy as np
-from typing import List, Tuple, Union
 
 def segment_intersections(line: np.ndarray, segments: np.ndarray, return_indexes: bool = False):
     """Calculate points of intersections between one line and a list of other lines."""
-    l_arr = np.asarray(line)
-    s_arr = np.asarray(segments)
+    l_arr = np.asarray(line, dtype=np.double)
+    s_arr = np.asarray(segments, dtype=np.double)
     
     if s_arr.size == 0:
         if return_indexes:
@@ -34,7 +33,7 @@ def segment_intersections(line: np.ndarray, segments: np.ndarray, return_indexes
     max_x_l = max(x1, x2)
     min_y_l = min(y1, y2)
     max_y_l = max(y1, y2)
-    
+
     # Bounding boxes for segment 2
     min_x_s = np.minimum(x3, x4)
     max_x_s = np.maximum(x3, x4)

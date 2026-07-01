@@ -70,7 +70,7 @@ def create_normals_on_path(path: List[Tuple[float, float]], width: float, spacin
     Returns:
         The generated lines as an Nx4 array
     """
-    from .c.points import get_points_on_paths
+    from .points import get_points_on_paths
     spaced_points = get_points_on_paths(path, spacing, loop=True)
     return create_line_normals_from_points(spaced_points, width)
 

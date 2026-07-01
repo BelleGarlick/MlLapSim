@@ -19,7 +19,7 @@ def normalise_points(points: List[Tuple[float, float]]) -> List[Tuple[float, flo
     mask = (norms != 0).flatten()
     res = np.zeros_like(pts, dtype=float)
     res[mask] = pts[mask] / norms[mask]
-    return [tuple(x) for x in res]
+    return res
 
 def distance(point_a: Tuple[float, float], point_b: Tuple[float, float]) -> float:
     """Calculate the distance between two points"""
@@ -48,16 +48,15 @@ def closest_point(origin: Tuple[float, float], points: List[Tuple[float, float]]
         return int(closest_idx)
     return tuple(pts[closest_idx])
 
-def points_to_lines(points: List[Tuple[float, float]]) -> np.ndarray:
+def points_to_lines(points: np.ndarray) -> np.ndarray:
     """Turn a list of points to lines."""
     count = len(points)
     if count == 0:
-        return []
+        return np.zeros((0, 4))
+
+    next_pts = np.roll(points, -1, axis=0)
     
-    pts = np.asarray(points)
-    next_pts = np.roll(pts, -1, axis=0)
-    
-    return np.hstack([pts, next_pts])
+    return np.hstack([points, next_pts])
 
 def sub_point(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:
     return (a[0] - b[0], a[1] - b[1])

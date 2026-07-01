@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 from pydantic import BaseModel, Field
 
 from toolkit.tracks.models.segmentation_line import SegmentationLine
@@ -29,13 +30,13 @@ class Track(BaseModel):
             for normal in self.segmentations
         ]
 
-    def left_line(self) -> List[List[float]]:
+    def left_line(self) -> np.ndarray:
         return [
             [normal.x1, normal.y1]
             for normal in self.segmentations
         ]
 
-    def right_line(self) -> List[List[float]]:
+    def right_line(self) -> np.ndarray:
         return [
             [normal.x2, normal.y2]
             for normal in self.segmentations

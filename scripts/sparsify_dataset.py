@@ -1,13 +1,15 @@
 import os
 import shutil
 
-output_paths = '/Users/belle/Downloads/evaluate tracks/V2 Output/'
+
+
+output_paths = '/Users/belle/Downloads/Version 3/'
 
 convertion_dirs = [
-    # output_paths + "ArtificialTraining",
-    # output_paths + "Artificial Test",
-    # output_paths + "Artificial Validation",
-    # output_paths + "Real Test",
+    output_paths + "training",
+    output_paths + "test",
+    output_paths + "validation",
+    output_paths + "faulty",
 ]
 
 
@@ -18,20 +20,24 @@ def open_path(f):
 
 
 def convert_file(f):
-    data = open_path(f).split("\n")[::2]
+    data = open_path(f).split("\n")
+    data = data[0:1] + data[1::2]
     with open(f, "w") as file:
         file.write("\n".join(data))
 
 
 def scan_files(dir):
-    for i, file in enumerate(os.listdir(dir)):
+    files = os.listdir(dir)
+    files = [f for f in files if not f.startswith(".")]
+
+    for i, file in enumerate(files):
         if file.startswith("."): continue
 
-        print(f"{i}{file}")
+        print(f"\r{i+1}/{len(files)} {file}", end="")
 
-        # path_dir = os.path.join(dir, file)
-        # convert_file(path_dir + "/track.csv")
-        # convert_file(path_dir + "/boundaries.csv")
+        path_dir = os.path.join(dir, file)
+        convert_file(path_dir + "/track.csv")
+        convert_file(path_dir + "/boundaries.csv")
 
         # breakpoint()
 

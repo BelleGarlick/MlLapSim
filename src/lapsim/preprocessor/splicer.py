@@ -43,10 +43,10 @@ def splice(params: SplicerInput) -> Track:
     path_x, path_y, vels, accs = get_path_data(track, params.path)
 
     # Create array off all lines for the segment intersections
-    optimal_path_line = [
+    optimal_path_line = np.array([
         [path_x[i - 1], path_y[i - 1], path_x[i], path_y[i]]
         for i in range(len(path_x))
-    ]
+    ])
 
     normals = [seg.arr() for seg in track.segmentations]
 
@@ -59,34 +59,41 @@ def splice(params: SplicerInput) -> Track:
         # TODO Optimise this to not cap it
         for extension in [0, 0.2, 0.4, 0.6, 0.8, 1]:
             # Extend line slightly to see if we can extend it to the path
-            line = maths.extend_lines([normal], extension)[0]
+            line = np.array(maths.extend_lines([normal], extension)[0])
             intersection_point, indexes = maths.segment_intersections(line, optimal_path_line, return_indexes=True)
 
-            if len(indexes) == 1:
-                index = indexes[0]
-                intersection_point = intersection_point[0]
+            if len(indexes) > 0:
+                distances = np.linalg.norm(intersection_point - line[:2], axis=1)
+                arg_idx = np.argmin(distances)
+                index = indexes[arg_idx]
+                intersection_point = intersection_point[arg_idx]
                 break
 
-            elif len(indexes) == 2:
-                optimal_path_line_1 = optimal_path_line[indexes[0]]
-                optimal_path_line_2 = optimal_path_line[indexes[1]]
-                index = indexes[0]
-
-                if np.array_equal(optimal_path_line_1[0:2], optimal_path_line_2[0:2]):
-                    intersection_point = optimal_path_line_1[0:2]
-
-                elif np.array_equal(optimal_path_line_1[0:2], optimal_path_line_2[2:4]):
-                    intersection_point = optimal_path_line_2[2:4]
-
-                elif np.array_equal(optimal_path_line_1[2:4], optimal_path_line_2[0:2]):
-                    intersection_point = optimal_path_line_2[0:2]
-
-                elif np.array_equal(optimal_path_line_1[2:4], optimal_path_line_2[2:4]):
-                    intersection_point = optimal_path_line_2[2:4]
-
-                else:
-                    intersection_point = optimal_path_line_1[0:2]
-                break
+            # if len(indexes) == 1:
+            #     index = indexes[0]
+            #     intersection_point = intersection_point[0]
+            #     break
+            #
+            # elif len(indexes) == 2:
+            #     optimal_path_line_1 = optimal_path_line[indexes[0]]
+            #     optimal_path_line_2 = optimal_path_line[indexes[1]]
+            #     index = indexes[0]
+            #
+            #     if np.array_equal(optimal_path_line_1[0:2], optimal_path_line_2[0:2]):
+            #         intersection_point = optimal_path_line_1[0:2]
+            #
+            #     elif np.array_equal(optimal_path_line_1[0:2], optimal_path_line_2[2:4]):
+            #         intersection_point = optimal_path_line_2[2:4]
+            #
+            #     elif np.array_equal(optimal_path_line_1[2:4], optimal_path_line_2[0:2]):
+            #         intersection_point = optimal_path_line_2[0:2]
+            #
+            #     elif np.array_equal(optimal_path_line_1[2:4], optimal_path_line_2[2:4]):
+            #         intersection_point = optimal_path_line_2[2:4]
+            #
+            #     else:
+            #         intersection_point = optimal_path_line_1[0:2]
+            #     break
 
         if index is None:
             raise Exception("Err... we have an error")
