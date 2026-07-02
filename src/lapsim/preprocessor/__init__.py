@@ -70,8 +70,8 @@ def process_record(
 
         outputs.append(
             encode({
-                "__key__": item["__key__"] + ("-flipped" if flip else ""),
-                "id": item_id + ("-flipped" if flip else ""),
+                "__key__": item["__key__"] + ("-flipped" if perform_flip else ""),
+                "id": item_id + ("-flipped" if perform_flip else ""),
                 "track": track,
                 "vehicle": vehicle,
                 "pos": positions,
@@ -130,11 +130,11 @@ def from_cli(
 
 
 if __name__ == "__main__":
-    # from_cli(
-    #     src="/Users/belle/Developer/MlLapSim/dataset/raw/lapsim-train-{00..16}.tar",
-    #     dest="/Users/belle/Developer/MlLapSim/dataset/processed/lapsim-train-%02d.tar",
-    #     flip=True
-    # )
+    from_cli(
+        src="/Users/belle/Developer/MlLapSim/dataset/raw/lapsim-train-{00..16}.tar",
+        dest="/Users/belle/Developer/MlLapSim/dataset/processed/lapsim-train-%02d.tar",
+        flip=True
+    )
     from_cli(
         src="/Users/belle/Developer/MlLapSim/dataset/raw/lapsim-validation-{0..1}.tar",
         dest="/Users/belle/Developer/MlLapSim/dataset/processed/lapsim-validation-%01d.tar",

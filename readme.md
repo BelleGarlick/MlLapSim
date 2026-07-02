@@ -62,3 +62,8 @@ e.g. `./tools/cli.sh encode --src ~/Downloads/DownloadedDataset/test --dest /dat
 ## Training / Testing
 In notebooks/ there is a training notebook that will walk you through training the models. You will
 have already need to have run the splicer and encoder to run train/testing notebooks.
+
+
+```
+mlflow server --port 5000 --host 0.0.0.0 --cors-allowed-origins "*"
+```

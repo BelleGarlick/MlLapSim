@@ -18,7 +18,10 @@ dependencies = [
     "setuptools",
     "pytest",
     "coverage",
-    "onnxruntime"
+    "onnxruntime",
+    "jupyter",
+    "torch",
+    "webdataset"
 ]
 
 [tool.cythonize]

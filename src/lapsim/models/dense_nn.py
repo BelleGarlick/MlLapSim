@@ -24,7 +24,7 @@ class LapSimModelDense(nn.Module):
         self.p2 = nn.Linear(200, 9)
 
     def forward(self, windows, vehicles):
-        x = torch.concatenate((vehicles, windows), axis=1)
+        x = torch.cat((vehicles, windows), axis=1)
 
         x = F.relu(self.d1(x))
         x = F.relu(self.d2(x))

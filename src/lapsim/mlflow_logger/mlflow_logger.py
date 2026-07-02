@@ -15,8 +15,8 @@ class NewLogger:
 
         self.log_every_n_batch = 10
 
-        # mlflow.set_tracking_uri("http://127.0.0.1:5000")
-        mlflow.set_tracking_uri("http://192.168.0.180:5000")
+        mlflow.set_tracking_uri("http://127.0.0.1:5000")
+        # mlflow.set_tracking_uri("http://192.168.0.180:5000")
         mlflow.set_experiment(experiment_name)
         # This starts a global run. In a real training script,
         # you might want to manage this with 'with mlflow.start_run():'
@@ -94,16 +94,16 @@ class NewLogger:
         self.val_pos_loss.clear()
         self.val_vel_loss.clear()
 
-    def log_checkpoint(self, epoch, model, sample_input, evaluation):
-        model_info = mlflow.pytorch.log_model(
-            pytorch_model=model,
-            name=f"checkpoint-epoch-{epoch}",
-            step=epoch,
-            input_example=sample_input,
-        )
+    def log_checkpoint(self, epoch, evaluation):
+        # model_info = mlflow.pytorch.log_model(
+        #     pytorch_model=model,
+        #     name=f"checkpoint-epoch-{epoch}",
+        #     step=epoch,
+        #     input_example=sample_input,
+        # )
 
         mlflow.log_metrics(
             {"eval/" + key: value for key, value in evaluation.items() if not isinstance(value, list)},
             step=epoch,
-            model_id=model_info.model_id
+            # model_id=model_info.model_id
         )
